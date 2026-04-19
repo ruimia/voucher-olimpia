@@ -147,7 +147,7 @@ body {
   margin-top: 0;
 }
 
-/* VOUCHER — proporção A4 */
+/* VOUCHER */
 .voucher {
   background: #fff;
   border: 1px solid #e0d8ce;
@@ -156,7 +156,6 @@ body {
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   font-family: 'Georgia', serif;
   width: 100%;
-  aspect-ratio: 210 / 297;
   display: flex;
   flex-direction: column;
 }
@@ -180,13 +179,13 @@ body {
 }
 
 .voucher-body {
-  padding: 8px 20px 8px;
+  padding: 12px 20px 12px;
   text-align: center;
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 6px;
+  justify-content: flex-start;
+  gap: 8px;
 }
 
 .voucher-parabens {
@@ -237,6 +236,7 @@ body {
 
 .voucher-valor {
   color: #444;
+  white-space: pre-wrap;
 }
 
 .voucher-italic {
