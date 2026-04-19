@@ -406,11 +406,12 @@ document.getElementById('btnSendEmail').addEventListener('click', async () => {
         codigo:    voucherData.codigo,
         tipo:      voucherData.tipo,
         valor:     voucherData.valor,
-        pdfBase64,
       }),
     });
 
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = { error: text }; }
 
     if (res.ok) {
       setStatus('stEmail', true);
