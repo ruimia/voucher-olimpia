@@ -1,62 +1,53 @@
-// ── IndexedDB ────────────────────────────────────────────────
-const DB_NAME = 'olimpia_vouchers';
+// ── Supabase ─────────────────────────────────────────────────
+const SUPA_URL = 'https://rptxgzgkohftmgjqtieb.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwdHhnemdrb2hmdG1nanF0aWViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MjM1NDEsImV4cCI6MjA5MjE5OTU0MX0.kJXJPav-aaOiIeXErn27OITV5ftErOWOQHMdFyAb9PA';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = (e) => {
-      const store = e.target.result.createObjectStore('vouchers', { keyPath: 'codigo' });
-      store.createIndex('data', 'data');
-    };
-    req.onsuccess = (e) => resolve(e.target.result);
-    req.onerror  = (e) => reject(e.target.error);
-  });
+function toRow(r) {
+  return {
+    codigo:          r.codigo,
+    tipo:            r.tipo            || 'vale-presente',
+    para:            r.para            || '',
+    de:              r.de              || null,
+    descricao:       r.descricao       || '',
+    mensagem:        r.mensagem        || null,
+    canal:           r.canal           || null,
+    valor:           parseFloat(r.valor) || 0,
+    telefone:        r.telefone        || null,
+    enviado_por:     r.enviadoPor      || null,
+    cadastrado_por:  r.cadastradoPor   || null,
+    email_enviado:   r.emailEnviado    || false,
+    zoho_registrado: r.zohoRegistrado  || false,
+    pdf_baixado:     r.pdfBaixado      || false,
+  };
 }
 
-async function getVoucher(codigo) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('vouchers', 'readonly');
-    const req = tx.objectStore('vouchers').get(codigo);
-    req.onsuccess = (e) => resolve(e.target.result || null);
-    req.onerror   = (e) => reject(e.target.error);
-  });
+async function dbGet(codigo) {
+  const { data } = await supa.from('vouchers').select('*').eq('codigo', codigo).maybeSingle();
+  return data || null;
 }
 
-async function saveVoucher(record) {
-  const db = await openDB();
-  const existing = await getVoucher(record.codigo) || {};
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('vouchers', 'readwrite');
-    tx.objectStore('vouchers').put({ ...existing, ...record });
-    tx.oncomplete = resolve;
-    tx.onerror = (e) => reject(e.target.error);
-  });
+async function dbSave(r) {
+  const { error } = await supa.from('vouchers').upsert(toRow(r), { onConflict: 'codigo' });
+  if (error) throw error;
 }
 
-async function patchVoucher(codigo, fields) {
-  const existing = await getVoucher(codigo);
-  if (!existing) return;
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('vouchers', 'readwrite');
-    tx.objectStore('vouchers').put({ ...existing, ...fields });
-    tx.oncomplete = resolve;
-    tx.onerror = (e) => reject(e.target.error);
-  });
+async function dbPatch(codigo, fields) {
+  const { error } = await supa.from('vouchers').update(fields).eq('codigo', codigo);
+  if (error) throw error;
 }
 
-async function getAllVouchers() {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('vouchers', 'readonly');
-    const req = tx.objectStore('vouchers').getAll();
-    req.onsuccess = (e) =>
-      resolve(e.target.result.sort((a, b) => b.data.localeCompare(a.data)));
-    req.onerror = (e) => reject(e.target.error);
-  });
+async function dbGetAll() {
+  const { data } = await supa.from('vouchers').select('*').order('created_at', { ascending: false });
+  return data || [];
 }
 
+async function dbDelete(codigo) {
+  const { error } = await supa.from('vouchers').delete().eq('codigo', codigo);
+  if (error) throw error;
+}
+
+// ── Zoho ─────────────────────────────────────────────────────
 async function logToZoho(record) {
   try {
     const res = await fetch('/api/zoho-log', {
@@ -115,18 +106,15 @@ function aplicarTipo(tipo) {
 
   const isPresente = tipo === 'vale-presente';
 
-  // Botões do toggle
   document.querySelectorAll('.tipo-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tipo === tipo);
   });
 
-  // Campos condicionais no Step 1
   document.getElementById('fieldDe').style.display      = isPresente ? '' : 'none';
   document.getElementById('fieldMensagem').style.display = isPresente ? '' : 'none';
   document.getElementById('de').required                 = isPresente;
-  document.getElementById('mensagem').required           = false; // mensagem é opcional
+  document.getElementById('mensagem').required           = false;
 
-  // Label "Para"
   document.getElementById('labelPara').textContent = isPresente
     ? 'Para (Presenteado)'
     : 'Nome do Cliente';
@@ -139,7 +127,6 @@ document.querySelectorAll('.tipo-btn').forEach(btn => {
   btn.addEventListener('click', () => aplicarTipo(btn.dataset.tipo));
 });
 
-// Inicializa com o tipo padrão
 aplicarTipo('vale-presente');
 
 // ── Navegação ─────────────────────────────────────────────────
@@ -180,11 +167,10 @@ document.getElementById('voucherForm').addEventListener('submit', async (e) => {
     if (num > atual) localStorage.setItem(STORAGE_KEY, num);
   }
 
-  // Verifica duplicata no histórico local
-  const existente = await getVoucher(codigo);
+  const existente = await dbGet(codigo);
   if (existente) {
     const continuar = confirm(
-      `⚠️ Código #${codigo} já foi gerado neste dispositivo para "${existente.para}" em ${formatDate(existente.data)}.\n\nDeseja continuar mesmo assim?`
+      `⚠️ Código #${codigo} já existe para "${existente.para}" (${formatDate(existente.created_at)}).\n\nDeseja continuar mesmo assim?`
     );
     if (!continuar) return;
   }
@@ -228,16 +214,16 @@ function renderVoucher() {
   document.getElementById('templatePrePag').classList.toggle('hidden', isPresente);
 
   if (isPresente) {
-    document.getElementById('vPara').textContent     = voucherData.para;
-    document.getElementById('vDe').textContent       = voucherData.de;
-    document.getElementById('vMensagem').textContent = voucherData.mensagem;
+    document.getElementById('vPara').textContent      = voucherData.para;
+    document.getElementById('vDe').textContent        = voucherData.de;
+    document.getElementById('vMensagem').textContent  = voucherData.mensagem;
     document.getElementById('vDescricao').textContent = voucherData.descricao;
-    document.getElementById('vCodigo').textContent   = '#' + voucherData.codigo;
+    document.getElementById('vCodigo').textContent    = '#' + voucherData.codigo;
   } else {
-    document.getElementById('ppCliente').textContent = voucherData.para;
-    document.getElementById('ppServico').textContent = voucherData.descricao;
-    document.getElementById('ppValor').textContent   = formatCurrency(voucherData.valor);
-    document.getElementById('ppCodigo').textContent  = '#' + voucherData.codigo;
+    document.getElementById('ppCliente').textContent  = voucherData.para;
+    document.getElementById('ppServico').textContent  = voucherData.descricao;
+    document.getElementById('ppValor').textContent    = formatCurrency(voucherData.valor);
+    document.getElementById('ppCodigo').textContent   = '#' + voucherData.codigo;
   }
 }
 
@@ -255,6 +241,8 @@ document.getElementById('btnNext2').addEventListener('click', async () => {
     btn.textContent = 'Registrando...';
     const zohoResult = await logToZoho({ ...voucherData, data: new Date().toISOString() });
     zohoRegistrado = zohoResult.ok;
+
+    await dbSave({ ...voucherData, zohoRegistrado });
 
     renderSummary(zohoRegistrado);
     showScreen('screen3');
@@ -328,25 +316,8 @@ document.getElementById('btnDownloadPDF').addEventListener('click', async () => 
   btn.disabled = true;
 
   try {
-    const record = {
-      tipo:          voucherData.tipo,
-      codigo:        voucherData.codigo,
-      para:          voucherData.para,
-      de:            voucherData.de,
-      descricao:     voucherData.descricao,
-      mensagem:      voucherData.mensagem,
-      canal:         voucherData.canal,
-      valor:         voucherData.valor,
-      telefone:      voucherData.telefone,
-      enviadoPor:    voucherData.enviadoPor,
-      cadastradoPor: voucherData.cadastradoPor,
-      data:          new Date().toISOString(),
-      pdfBytes:      generatedPdfBytes,
-      zohoRegistrado,
-    };
-    await saveVoucher(record);
     triggerDownload(generatedPdfBytes, voucherData.para, voucherData.codigo);
-
+    await dbPatch(voucherData.codigo, { pdf_baixado: true });
     setStatus('stDownload', true);
     btn.textContent = '✓ PDF Baixado!';
     btn.style.background = '#4caf50';
@@ -356,7 +327,7 @@ document.getElementById('btnDownloadPDF').addEventListener('click', async () => 
       btn.disabled = false;
     }, 3000);
   } catch (err) {
-    alert('Erro ao salvar. Tente novamente.');
+    alert('Erro ao baixar. Tente novamente.');
     console.error(err);
     btn.textContent = '⬇ Baixar PDF';
     btn.disabled = false;
@@ -364,19 +335,9 @@ document.getElementById('btnDownloadPDF').addEventListener('click', async () => 
 });
 
 // ── Envio de Email ────────────────────────────────────────────
-function ab2base64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let bin = '';
-  const chunk = 8192;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(bin);
-}
-
 document.getElementById('btnSendEmail').addEventListener('click', async () => {
-  const to  = document.getElementById('emailTo').value.trim();
-  const cc  = document.getElementById('emailCc').value.trim();
+  const to     = document.getElementById('emailTo').value.trim();
+  const cc     = document.getElementById('emailCc').value.trim();
   const status = document.getElementById('emailStatus');
 
   if (!to) {
@@ -392,8 +353,6 @@ document.getElementById('btnSendEmail').addEventListener('click', async () => {
   status.className = 'email-status';
 
   try {
-    const pdfBase64 = generatedPdfBytes ? ab2base64(generatedPdfBytes) : null;
-
     const res = await fetch('/api/send-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -418,24 +377,7 @@ document.getElementById('btnSendEmail').addEventListener('click', async () => {
       status.textContent = '✓ Email enviado com sucesso!';
       status.className = 'email-status success';
       btn.textContent = '✉ Enviar Email';
-
-      await saveVoucher({
-        tipo:          voucherData.tipo,
-        codigo:        voucherData.codigo,
-        para:          voucherData.para,
-        de:            voucherData.de,
-        descricao:     voucherData.descricao,
-        mensagem:      voucherData.mensagem,
-        canal:         voucherData.canal,
-        valor:         voucherData.valor,
-        telefone:      voucherData.telefone,
-        enviadoPor:    voucherData.enviadoPor,
-        cadastradoPor: voucherData.cadastradoPor,
-        data:          new Date().toISOString(),
-        pdfBytes:      generatedPdfBytes,
-        zohoRegistrado,
-        emailEnviado:  true,
-      });
+      await dbPatch(voucherData.codigo, { email_enviado: true });
     } else {
       throw new Error(data.error || 'Erro desconhecido');
     }
@@ -486,7 +428,7 @@ async function gerarPDF() {
   return pdf;
 }
 
-// ── Histórico (Log) ───────────────────────────────────────────
+// ── Histórico ─────────────────────────────────────────────────
 document.getElementById('btnLog').addEventListener('click', () => {
   lastScreenBeforeLog = document.querySelector('.screen:not(.hidden)')?.id || 'screen1';
   showLog();
@@ -508,44 +450,223 @@ function tipoLabel(tipo) {
     : '<span style="color:#d4a96a;font-size:0.75rem;font-weight:bold;">PRESENTE</span>';
 }
 
-async function showLog() {
-  showScreen('screenLog');
-  const vouchers = await getAllVouchers();
-  const tbody = document.getElementById('logBody');
-
-  if (vouchers.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="log-empty">Nenhum voucher gerado ainda.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = vouchers.map(v => `
-    <tr>
-      <td><strong>#${v.codigo}</strong></td>
-      <td>${tipoLabel(v.tipo)}</td>
-      <td>${v.para}${v.de ? `<br><small style="color:#aaa;">de: ${v.de}</small>` : ''}</td>
-      <td>${v.descricao.replace(/\n/g, '<br>')}</td>
-      <td>${formatDate(v.data)}</td>
-      <td>${flagCell(v.emailEnviado)}</td>
-      <td>${flagCell(v.zohoRegistrado)}</td>
-      <td>
-        ${v.pdfBytes
-          ? `<button class="btn-download-log" data-codigo="${v.codigo}">⬇ PDF</button>`
-          : '—'}
-      </td>
-    </tr>
-  `).join('');
-
-  document.querySelectorAll('.btn-download-log').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const all = await getAllVouchers();
-      const v   = all.find(x => x.codigo === btn.dataset.codigo);
-      if (v?.pdfBytes) triggerDownload(v.pdfBytes, v.para, v.codigo);
-    });
-  });
-}
-
 function formatDate(iso) {
+  if (!iso) return '—';
   const d = new Date(iso);
   return d.toLocaleDateString('pt-BR') + ' '
        + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
+
+async function showLog() {
+  showScreen('screenLog');
+  const tbody = document.getElementById('logBody');
+  tbody.innerHTML = '<tr><td colspan="7" class="log-empty">Carregando...</td></tr>';
+
+  const vouchers = await dbGetAll();
+
+  if (vouchers.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="log-empty">Nenhum voucher gerado ainda.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = vouchers.map(v => `
+    <tr class="log-row" data-codigo="${v.codigo}">
+      <td><strong>#${v.codigo}</strong></td>
+      <td>${tipoLabel(v.tipo)}</td>
+      <td>${v.para}${v.de ? `<br><small style="color:#aaa;">de: ${v.de}</small>` : ''}</td>
+      <td>${(v.descricao || '').replace(/\n/g, '<br>')}</td>
+      <td>${formatDate(v.created_at)}</td>
+      <td>${flagCell(v.email_enviado)}</td>
+      <td>${flagCell(v.zoho_registrado)}</td>
+    </tr>
+  `).join('');
+
+  document.querySelectorAll('.log-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const codigo = row.dataset.codigo;
+      const record = vouchers.find(v => v.codigo === codigo);
+      if (record) openModal(record);
+    });
+  });
+}
+
+// ── Modal CRUD ────────────────────────────────────────────────
+let currentModalRecord = null;
+
+function openModal(record) {
+  currentModalRecord = record;
+  document.getElementById('modalTitle').textContent = `Voucher #${record.codigo}`;
+  renderModalView(record);
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+
+function modalField(label, value) {
+  return `<div class="modal-field"><span class="modal-field-label">${label}</span><span class="modal-field-value">${value || '—'}</span></div>`;
+}
+
+function renderModalView(r) {
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-section">
+      ${modalField('Tipo', tipoLabel(r.tipo))}
+      ${modalField('Para', r.para)}
+      ${r.de ? modalField('De', r.de) : ''}
+      ${modalField('Descrição', (r.descricao || '').replace(/\n/g, '<br>'))}
+      ${r.mensagem ? modalField('Mensagem', r.mensagem) : ''}
+      ${modalField('Código', '#' + r.codigo)}
+    </div>
+    <div class="modal-section">
+      ${modalField('Canal', r.canal)}
+      ${modalField('Valor', formatCurrency(r.valor))}
+      ${modalField('Telefone', r.telefone)}
+      ${modalField('Enviado por', r.enviado_por)}
+      ${modalField('Cadastrado por', r.cadastrado_por)}
+      ${modalField('Data', formatDate(r.created_at))}
+    </div>
+    <div class="modal-flags-view">
+      <span class="modal-flag ${r.email_enviado ? 'flag-on' : 'flag-off'}">✉ Email ${r.email_enviado ? 'enviado' : 'não enviado'}</span>
+      <span class="modal-flag ${r.zoho_registrado ? 'flag-on' : 'flag-off'}">📋 Zoho ${r.zoho_registrado ? 'registrado' : 'não registrado'}</span>
+      <span class="modal-flag ${r.pdf_baixado ? 'flag-on' : 'flag-off'}">⬇ PDF ${r.pdf_baixado ? 'baixado' : 'não baixado'}</span>
+    </div>
+  `;
+  document.getElementById('modalEdit').classList.remove('hidden');
+  document.getElementById('modalSave').classList.add('hidden');
+  document.getElementById('modalCancel').classList.add('hidden');
+}
+
+function selOpt(id, val) {
+  const el = document.getElementById(id);
+  if (el && val) el.value = val;
+}
+
+function renderModalEdit(r) {
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-section">
+      <div class="modal-edit-field">
+        <label>Tipo</label>
+        <select id="mTipo">
+          <option value="vale-presente">Vale-Presente</option>
+          <option value="pre-pagamento">Pré-pagamento</option>
+        </select>
+      </div>
+      <div class="modal-edit-field"><label>Para</label><input id="mPara" value="${r.para || ''}" /></div>
+      <div class="modal-edit-field"><label>De</label><input id="mDe" value="${r.de || ''}" /></div>
+      <div class="modal-edit-field"><label>Descrição</label><textarea id="mDescricao" rows="3">${r.descricao || ''}</textarea></div>
+      <div class="modal-edit-field"><label>Mensagem</label><textarea id="mMensagem" rows="2">${r.mensagem || ''}</textarea></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-edit-field">
+        <label>Canal</label>
+        <select id="mCanal">
+          <option value="">—</option>
+          <option value="Internet">Internet</option>
+          <option value="Whatsapp">Whatsapp</option>
+          <option value="Telefone">Telefone</option>
+          <option value="Pessoalmente">Pessoalmente</option>
+          <option value="CORTESIA - Eduardo">Cortesia Eduardo</option>
+          <option value="CORTESIA - Mileny">Cortesia Mileny</option>
+          <option value="CORTESIA - Mari">Cortesia Mari</option>
+          <option value="EMPRESAS - Corporativo">Corporativo</option>
+        </select>
+      </div>
+      <div class="modal-edit-field"><label>Valor R$</label><input id="mValor" type="number" step="0.01" value="${r.valor || 0}" /></div>
+      <div class="modal-edit-field"><label>Telefone</label><input id="mTelefone" value="${r.telefone || ''}" /></div>
+      <div class="modal-edit-field">
+        <label>Enviado por</label>
+        <select id="mEnviadoPor">
+          <option value="">—</option>
+          <option value="E-mail">E-mail</option>
+          <option value="Whatsapp">Whatsapp</option>
+          <option value="Retirado no Spa">Retirado no Spa</option>
+          <option value="Correio/Sedex">Correio/Sedex</option>
+        </select>
+      </div>
+      <div class="modal-edit-field">
+        <label>Cadastrado por</label>
+        <select id="mCadastradoPor">
+          <option value="">—</option>
+          <option value="ADM-Marianne">ADM-Marianne</option>
+          <option value="ADM-Rui">ADM-Rui</option>
+          <option value="VO - Felipe">VO - Felipe</option>
+          <option value="VO - Nicolly">VO - Nicolly</option>
+          <option value="JD - Luiza">JD - Luiza</option>
+          <option value="JD - Rafaella">JD - Rafaella</option>
+          <option value="OUTROS">OUTROS</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-flags-edit">
+      <label><input type="checkbox" id="mEmailEnviado" ${r.email_enviado ? 'checked' : ''} /> Email enviado</label>
+      <label><input type="checkbox" id="mZohoRegistrado" ${r.zoho_registrado ? 'checked' : ''} /> Zoho registrado</label>
+      <label><input type="checkbox" id="mPdfBaixado" ${r.pdf_baixado ? 'checked' : ''} /> PDF baixado</label>
+    </div>
+  `;
+  selOpt('mTipo', r.tipo);
+  selOpt('mCanal', r.canal);
+  selOpt('mEnviadoPor', r.enviado_por);
+  selOpt('mCadastradoPor', r.cadastrado_por);
+
+  document.getElementById('modalEdit').classList.add('hidden');
+  document.getElementById('modalSave').classList.remove('hidden');
+  document.getElementById('modalCancel').classList.remove('hidden');
+}
+
+document.getElementById('modalClose').addEventListener('click', () => {
+  document.getElementById('modalOverlay').classList.add('hidden');
+});
+
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modalOverlay')) {
+    document.getElementById('modalOverlay').classList.add('hidden');
+  }
+});
+
+document.getElementById('modalEdit').addEventListener('click', () => {
+  renderModalEdit(currentModalRecord);
+});
+
+document.getElementById('modalCancel').addEventListener('click', () => {
+  renderModalView(currentModalRecord);
+});
+
+document.getElementById('modalDelete').addEventListener('click', async () => {
+  if (!confirm(`Deletar voucher #${currentModalRecord.codigo}?\nEsta ação não pode ser desfeita.`)) return;
+  try {
+    await dbDelete(currentModalRecord.codigo);
+    document.getElementById('modalOverlay').classList.add('hidden');
+    showLog();
+  } catch (err) {
+    alert('Erro ao deletar: ' + err.message);
+  }
+});
+
+document.getElementById('modalSave').addEventListener('click', async () => {
+  const btn = document.getElementById('modalSave');
+  btn.textContent = 'Salvando...';
+  btn.disabled = true;
+  try {
+    const updates = {
+      tipo:            document.getElementById('mTipo').value,
+      para:            document.getElementById('mPara').value.trim(),
+      de:              document.getElementById('mDe').value.trim() || null,
+      descricao:       document.getElementById('mDescricao').value.trim(),
+      mensagem:        document.getElementById('mMensagem').value.trim() || null,
+      canal:           document.getElementById('mCanal').value || null,
+      valor:           parseFloat(document.getElementById('mValor').value) || 0,
+      telefone:        document.getElementById('mTelefone').value.trim() || null,
+      enviado_por:     document.getElementById('mEnviadoPor').value || null,
+      cadastrado_por:  document.getElementById('mCadastradoPor').value || null,
+      email_enviado:   document.getElementById('mEmailEnviado').checked,
+      zoho_registrado: document.getElementById('mZohoRegistrado').checked,
+      pdf_baixado:     document.getElementById('mPdfBaixado').checked,
+    };
+    await dbPatch(currentModalRecord.codigo, updates);
+    currentModalRecord = { ...currentModalRecord, ...updates };
+    renderModalView(currentModalRecord);
+    showLog();
+  } catch (err) {
+    alert('Erro ao salvar: ' + err.message);
+  } finally {
+    btn.textContent = 'Salvar';
+    btn.disabled = false;
+  }
+});

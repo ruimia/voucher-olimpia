@@ -311,7 +311,6 @@
               <th>Data</th>
               <th>Email</th>
               <th>Zoho</th>
-              <th>PDF</th>
             </tr>
           </thead>
           <tbody id="logBody"></tbody>
@@ -320,8 +319,27 @@
     </section>
 
   </main>
+  <!-- MODAL -->
+  <div id="modalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Voucher</h3>
+        <button id="modalClose" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer">
+        <button id="modalDelete" class="btn-danger">🗑 Deletar</button>
+        <div class="modal-footer-right">
+          <button id="modalCancel" class="btn-secundario hidden">Cancelar</button>
+          <button id="modalEdit" class="btn-secundario">✏ Editar</button>
+          <button id="modalSave" class="btn-primario hidden">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
