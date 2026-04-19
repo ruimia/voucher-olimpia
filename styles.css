@@ -104,7 +104,8 @@ body {
   margin: 0 auto;
   padding: 28px 16px;
 }
-.screen.hidden { display: none; }
+.hidden { display: none !important; }
+.screen.hidden { display: none !important; }
 .screen-title {
   font-size: 1.1rem;
   color: #2c2c2c;
@@ -124,6 +125,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+.field select,
 .field input,
 .field textarea {
   width: 100%;
@@ -136,11 +138,79 @@ body {
   transition: border 0.2s;
 }
 .field input:focus,
-.field textarea:focus { outline: none; border-color: #d4a96a; }
+.field textarea:focus,
+.field select:focus { outline: none; border-color: #d4a96a; }
 .field small { display: block; margin-top: 5px; color: #888; font-size: 0.75rem; }
 
 .codigo-row { display: flex; gap: 10px; }
 .codigo-row input { flex: 1; }
+
+/* ── TIPO TOGGLE ── */
+.tipo-toggle-topo {
+  display: flex;
+  gap: 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.tipo-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: #fff;
+  color: #888;
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.tipo-btn:first-child { border-right: 1px solid #ccc; }
+.tipo-btn.active {
+  background: #2c2c2c;
+  color: #d4a96a;
+  font-weight: bold;
+}
+
+/* ── FORM SECTIONS ── */
+.form-section {
+  border: 1px solid #e0d8ce;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #fff;
+}
+.form-section-interna {
+  background: #faf7f3;
+  border-color: #d4a96a44;
+}
+.form-section-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #aaa;
+  font-family: sans-serif;
+  font-weight: bold;
+  margin-bottom: 14px;
+}
+.form-section-interna .form-section-title { color: #b8904f; }
+.form-section .field:last-child { margin-bottom: 0; }
+
+/* ── GRID 2 COLUNAS ── */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── TELEFONE ── */
+.telefone-row {
+  display: flex;
+  gap: 6px;
+}
+.telefone-row input:first-child  { width: 64px;  flex-shrink: 0; }
+.telefone-row input:nth-child(2) { width: 52px;  flex-shrink: 0; }
+.telefone-row input:last-child   { flex: 1; }
 
 /* ── BOTÕES ── */
 .btn-primario {
@@ -226,40 +296,91 @@ body {
 }
 .nav-buttons-step3 { margin-top: 8px; }
 
-/* ── DOWNLOAD SCREEN ── */
-.download-screen {
-  text-align: center;
-  padding: 16px 0;
+/* ── STATUS BAR ── */
+.status-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
 }
-.download-icon {
-  width: 64px;
-  height: 64px;
-  background: #4caf50;
-  color: #fff;
-  border-radius: 50%;
-  font-size: 2rem;
+.status-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin: 0 auto 16px;
+  gap: 6px;
+  background: #f0ebe4;
+  border: 1px solid #e0d8ce;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-family: sans-serif;
+  color: #aaa;
+  transition: background 0.3s, color 0.3s, border-color 0.3s;
 }
-.voucher-summary {
+.status-item.done {
+  background: #edf7ed;
+  border-color: #4caf50;
+  color: #2e7d32;
+  font-weight: bold;
+}
+.status-item.fail {
+  background: #fdecea;
+  border-color: #e53935;
+  color: #c62828;
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ccc;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+.status-item.done .status-dot { background: #4caf50; }
+.status-item.fail .status-dot { background: #e53935; }
+
+/* ── STEP 3 ── */
+.s3-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+@media (max-width: 520px) {
+  .s3-grid { grid-template-columns: 1fr; }
+}
+.s3-card {
   background: #fff;
   border: 1px solid #e0d8ce;
   border-radius: 8px;
-  padding: 16px 24px;
-  display: inline-block;
-  text-align: left;
-  margin: 8px auto;
-  min-width: 280px;
+  padding: 14px 16px;
 }
-.summary-linha {
-  margin-bottom: 8px;
-  font-size: 1rem;
-  color: #555;
+.s3-card-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #aaa;
+  font-family: sans-serif;
+  font-weight: bold;
+  margin-bottom: 10px;
 }
-.summary-linha:last-child { margin-bottom: 0; }
-.summary-linha strong { color: #2c2c2c; }
+.s3-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.85rem;
+  padding: 4px 0;
+  border-bottom: 1px solid #f5f0eb;
+}
+.s3-row:last-of-type { border-bottom: none; }
+.s3-row span { color: #888; white-space: nowrap; }
+.s3-row strong { color: #2c2c2c; text-align: right; }
+.s3-zoho-status {
+  font-size: 0.75rem;
+  margin-top: 8px;
+  font-family: sans-serif;
+  min-height: 16px;
+}
 
 /* ── VOUCHER ── */
 .voucher {
@@ -350,6 +471,32 @@ body {
   font-style: italic;
   text-align: center;
   line-height: 1.3;
+}
+.voucher-prepag-titulo {
+  font-size: 1.1rem;
+  color: #2c2c2c;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.voucher-valor-bloco {
+  background: #f5f0eb;
+  border: 2px solid #d4a96a;
+  border-radius: 6px;
+  padding: 10px 16px;
+  text-align: center;
+}
+.voucher-valor-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+  margin-bottom: 2px;
+}
+.voucher-valor-num {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #2c2c2c;
+  letter-spacing: 1px;
 }
 .voucher-rodape {
   background: #f5f0eb;

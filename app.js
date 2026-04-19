@@ -13,11 +13,34 @@ function openDB() {
   });
 }
 
+async function getVoucher(codigo) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('vouchers', 'readonly');
+    const req = tx.objectStore('vouchers').get(codigo);
+    req.onsuccess = (e) => resolve(e.target.result || null);
+    req.onerror   = (e) => reject(e.target.error);
+  });
+}
+
 async function saveVoucher(record) {
+  const db = await openDB();
+  const existing = await getVoucher(record.codigo) || {};
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('vouchers', 'readwrite');
+    tx.objectStore('vouchers').put({ ...existing, ...record });
+    tx.oncomplete = resolve;
+    tx.onerror = (e) => reject(e.target.error);
+  });
+}
+
+async function patchVoucher(codigo, fields) {
+  const existing = await getVoucher(codigo);
+  if (!existing) return;
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction('vouchers', 'readwrite');
-    tx.objectStore('vouchers').put(record);
+    tx.objectStore('vouchers').put({ ...existing, ...fields });
     tx.oncomplete = resolve;
     tx.onerror = (e) => reject(e.target.error);
   });
@@ -32,6 +55,32 @@ async function getAllVouchers() {
       resolve(e.target.result.sort((a, b) => b.data.localeCompare(a.data)));
     req.onerror = (e) => reject(e.target.error);
   });
+}
+
+async function logToZoho(record) {
+  try {
+    const res = await fetch('/api/zoho-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        para:          record.para,
+        de:            record.de,
+        descricao:     record.descricao,
+        mensagem:      record.mensagem,
+        codigo:        record.codigo,
+        canal:         record.canal,
+        valor:         record.valor,
+        telefone:      record.telefone,
+        enviadoPor:    record.enviadoPor,
+        cadastradoPor: record.cadastradoPor,
+        data:          record.data,
+      }),
+    });
+    return { ok: res.ok };
+  } catch (err) {
+    console.warn('Zoho log falhou:', err);
+    return { ok: false };
+  }
 }
 
 // ── Código incremental ────────────────────────────────────────
@@ -53,7 +102,45 @@ function peekProximoCodigo() {
 // ── State ─────────────────────────────────────────────────────
 let voucherData = {};
 let generatedPdfBytes = null;
+let zohoRegistrado = false;
 let lastScreenBeforeLog = 'screen1';
+
+// ── Tipo de Voucher ───────────────────────────────────────────
+function getTipo() {
+  return document.getElementById('tipo').value;
+}
+
+function aplicarTipo(tipo) {
+  document.getElementById('tipo').value = tipo;
+
+  const isPresente = tipo === 'vale-presente';
+
+  // Botões do toggle
+  document.querySelectorAll('.tipo-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tipo === tipo);
+  });
+
+  // Campos condicionais no Step 1
+  document.getElementById('fieldDe').style.display      = isPresente ? '' : 'none';
+  document.getElementById('fieldMensagem').style.display = isPresente ? '' : 'none';
+  document.getElementById('de').required                 = isPresente;
+  document.getElementById('mensagem').required           = false; // mensagem é opcional
+
+  // Label "Para"
+  document.getElementById('labelPara').textContent = isPresente
+    ? 'Para (Presenteado)'
+    : 'Nome do Cliente';
+  document.getElementById('para').placeholder = isPresente
+    ? 'Nome de quem vai receber'
+    : 'Nome do cliente';
+}
+
+document.querySelectorAll('.tipo-btn').forEach(btn => {
+  btn.addEventListener('click', () => aplicarTipo(btn.dataset.tipo));
+});
+
+// Inicializa com o tipo padrão
+aplicarTipo('vale-presente');
 
 // ── Navegação ─────────────────────────────────────────────────
 function showScreen(id) {
@@ -81,52 +168,95 @@ document.getElementById('btnGerarCodigo').addEventListener('click', () => {
   document.getElementById('codigo').value = peekProximoCodigo();
 });
 
-document.getElementById('voucherForm').addEventListener('submit', (e) => {
+document.getElementById('voucherForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
   let codigo = document.getElementById('codigo').value.trim();
   if (!codigo) {
     codigo = proximoCodigo();
   } else {
-    // sincroniza contador se código foi inserido manualmente
     const num = parseInt(codigo);
     const atual = parseInt(localStorage.getItem(STORAGE_KEY) || CODIGO_INICIAL - 1);
     if (num > atual) localStorage.setItem(STORAGE_KEY, num);
   }
 
+  // Verifica duplicata no histórico local
+  const existente = await getVoucher(codigo);
+  if (existente) {
+    const continuar = confirm(
+      `⚠️ Código #${codigo} já foi gerado neste dispositivo para "${existente.para}" em ${formatDate(existente.data)}.\n\nDeseja continuar mesmo assim?`
+    );
+    if (!continuar) return;
+  }
+
+  const tipo = getTipo();
+
+  const telPais   = document.getElementById('telPais').value.trim();
+  const telCidade = document.getElementById('telCidade').value.trim();
+  const telNumero = document.getElementById('telNumero').value.trim();
+  const telefone  = [telPais, telCidade, telNumero].filter(Boolean).join('-');
+
   voucherData = {
-    para:     document.getElementById('para').value.trim(),
-    de:       document.getElementById('de').value.trim(),
-    descricao:document.getElementById('descricao').value.trim(),
-    mensagem: document.getElementById('mensagem').value.trim(),
+    tipo,
+    para:          document.getElementById('para').value.trim(),
+    de:            tipo === 'vale-presente' ? document.getElementById('de').value.trim() : '',
+    descricao:     document.getElementById('descricao').value.trim(),
+    mensagem:      tipo === 'vale-presente' ? document.getElementById('mensagem').value.trim() : '',
+    canal:         document.getElementById('canal').value,
+    valor:         document.getElementById('valor').value || '0',
+    telefone,
+    enviadoPor:    document.getElementById('enviadoPor').value,
+    cadastradoPor: document.getElementById('cadastradoPor').value,
     codigo,
   };
 
-  generatedPdfBytes = null; // invalida PDF anterior
+  generatedPdfBytes = null;
   renderVoucher();
   showScreen('screen2');
 });
 
 // ── Step 2: Preview ───────────────────────────────────────────
+function formatCurrency(val) {
+  const n = parseFloat(val) || 0;
+  return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function renderVoucher() {
-  document.getElementById('vPara').textContent     = voucherData.para;
-  document.getElementById('vDe').textContent       = voucherData.de;
-  document.getElementById('vDescricao').textContent = voucherData.descricao;
-  document.getElementById('vMensagem').textContent  = voucherData.mensagem;
-  document.getElementById('vCodigo').textContent    = '#' + voucherData.codigo;
+  const isPresente = voucherData.tipo === 'vale-presente';
+
+  document.getElementById('templatePresente').classList.toggle('hidden', !isPresente);
+  document.getElementById('templatePrePag').classList.toggle('hidden', isPresente);
+
+  if (isPresente) {
+    document.getElementById('vPara').textContent     = voucherData.para;
+    document.getElementById('vDe').textContent       = voucherData.de;
+    document.getElementById('vMensagem').textContent = voucherData.mensagem;
+    document.getElementById('vDescricao').textContent = voucherData.descricao;
+    document.getElementById('vCodigo').textContent   = '#' + voucherData.codigo;
+  } else {
+    document.getElementById('ppCliente').textContent = voucherData.para;
+    document.getElementById('ppServico').textContent = voucherData.descricao;
+    document.getElementById('ppValor').textContent   = formatCurrency(voucherData.valor);
+    document.getElementById('ppCodigo').textContent  = '#' + voucherData.codigo;
+  }
 }
 
 document.getElementById('btnBack2').addEventListener('click', () => showScreen('screen1'));
 
 document.getElementById('btnNext2').addEventListener('click', async () => {
   const btn = document.getElementById('btnNext2');
-  btn.textContent = 'Gerando...';
   btn.disabled = true;
 
   try {
+    btn.textContent = 'Gerando PDF...';
     const pdf = await gerarPDF();
     generatedPdfBytes = pdf.output('arraybuffer');
-    renderSummary();
+
+    btn.textContent = 'Registrando...';
+    const zohoResult = await logToZoho({ ...voucherData, data: new Date().toISOString() });
+    zohoRegistrado = zohoResult.ok;
+
+    renderSummary(zohoRegistrado);
     showScreen('screen3');
   } catch (err) {
     alert('Erro ao processar voucher. Tente novamente.');
@@ -138,9 +268,41 @@ document.getElementById('btnNext2').addEventListener('click', async () => {
 });
 
 // ── Step 3: Download ──────────────────────────────────────────
-function renderSummary() {
-  document.getElementById('summaryPara').textContent   = voucherData.para;
-  document.getElementById('summaryCodigo').textContent = '#' + voucherData.codigo;
+function setStatus(id, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('done', 'fail');
+  if (state === true)  el.classList.add('done');
+  if (state === false) el.classList.add('fail');
+}
+
+function renderSummary(zohoOk) {
+  const isPresente = voucherData.tipo === 'vale-presente';
+
+  document.getElementById('summaryPara').textContent    = voucherData.para;
+  document.getElementById('summaryCodigo').textContent  = '#' + voucherData.codigo;
+
+  const rowDe = document.getElementById('summaryRowDe');
+  if (isPresente && voucherData.de) {
+    rowDe.style.display = '';
+    document.getElementById('summaryDe').textContent = voucherData.de;
+  } else {
+    rowDe.style.display = 'none';
+  }
+
+  document.getElementById('summaryCanal').textContent      = voucherData.canal || '—';
+  document.getElementById('summaryValor').textContent      = formatCurrency(voucherData.valor);
+  document.getElementById('summaryEnviado').textContent    = voucherData.enviadoPor || '—';
+  document.getElementById('summaryCadastrado').textContent = voucherData.cadastradoPor || '—';
+
+  const zohoEl = document.getElementById('summaryZohoStatus');
+  zohoEl.textContent = zohoOk ? '✓ Registrado' : '✗ Falha ao registrar';
+  zohoEl.style.color = zohoOk ? '#4caf50' : '#e53935';
+
+  setStatus('stZoho',    zohoOk);
+  setStatus('stVoucher', true);
+  setStatus('stDownload', null);
+  setStatus('stEmail',   null);
 }
 
 document.getElementById('btnBack3').addEventListener('click', () => showScreen('screen2'));
@@ -148,8 +310,13 @@ document.getElementById('btnBack3').addEventListener('click', () => showScreen('
 document.getElementById('btnNovo').addEventListener('click', () => {
   document.getElementById('voucherForm').reset();
   document.getElementById('codigo').value = '';
+  document.getElementById('canal').value = '';
+  document.getElementById('enviadoPor').value = '';
+  document.getElementById('cadastradoPor').value = '';
+  aplicarTipo('vale-presente');
   voucherData = {};
   generatedPdfBytes = null;
+  zohoRegistrado = false;
   showScreen('screen1');
 });
 
@@ -161,19 +328,26 @@ document.getElementById('btnDownloadPDF').addEventListener('click', async () => 
   btn.disabled = true;
 
   try {
-    // salva no IndexedDB (só na primeira vez)
-    await saveVoucher({
-      codigo:    voucherData.codigo,
-      para:      voucherData.para,
-      de:        voucherData.de,
-      descricao: voucherData.descricao,
-      mensagem:  voucherData.mensagem,
-      data:      new Date().toISOString(),
-      pdfBytes:  generatedPdfBytes,
-    });
-
+    const record = {
+      tipo:          voucherData.tipo,
+      codigo:        voucherData.codigo,
+      para:          voucherData.para,
+      de:            voucherData.de,
+      descricao:     voucherData.descricao,
+      mensagem:      voucherData.mensagem,
+      canal:         voucherData.canal,
+      valor:         voucherData.valor,
+      telefone:      voucherData.telefone,
+      enviadoPor:    voucherData.enviadoPor,
+      cadastradoPor: voucherData.cadastradoPor,
+      data:          new Date().toISOString(),
+      pdfBytes:      generatedPdfBytes,
+      zohoRegistrado,
+    };
+    await saveVoucher(record);
     triggerDownload(generatedPdfBytes, voucherData.para, voucherData.codigo);
 
+    setStatus('stDownload', true);
     btn.textContent = '✓ PDF Baixado!';
     btn.style.background = '#4caf50';
     setTimeout(() => {
@@ -230,6 +404,8 @@ document.getElementById('btnSendEmail').addEventListener('click', async () => {
         descricao: voucherData.descricao,
         mensagem:  voucherData.mensagem,
         codigo:    voucherData.codigo,
+        tipo:      voucherData.tipo,
+        valor:     voucherData.valor,
         pdfBase64,
       }),
     });
@@ -237,19 +413,27 @@ document.getElementById('btnSendEmail').addEventListener('click', async () => {
     const data = await res.json();
 
     if (res.ok) {
+      setStatus('stEmail', true);
       status.textContent = '✓ Email enviado com sucesso!';
       status.className = 'email-status success';
       btn.textContent = '✉ Enviar Email';
 
-      // salva no log se ainda não foi salvo
       await saveVoucher({
-        codigo:    voucherData.codigo,
-        para:      voucherData.para,
-        de:        voucherData.de,
-        descricao: voucherData.descricao,
-        mensagem:  voucherData.mensagem,
-        data:      new Date().toISOString(),
-        pdfBytes:  generatedPdfBytes,
+        tipo:          voucherData.tipo,
+        codigo:        voucherData.codigo,
+        para:          voucherData.para,
+        de:            voucherData.de,
+        descricao:     voucherData.descricao,
+        mensagem:      voucherData.mensagem,
+        canal:         voucherData.canal,
+        valor:         voucherData.valor,
+        telefone:      voucherData.telefone,
+        enviadoPor:    voucherData.enviadoPor,
+        cadastradoPor: voucherData.cadastradoPor,
+        data:          new Date().toISOString(),
+        pdfBytes:      generatedPdfBytes,
+        zohoRegistrado,
+        emailEnviado:  true,
       });
     } else {
       throw new Error(data.error || 'Erro desconhecido');
@@ -311,23 +495,37 @@ document.getElementById('btnCloseLog').addEventListener('click', () => {
   showScreen(lastScreenBeforeLog);
 });
 
+function flagCell(value) {
+  return value
+    ? '<span style="color:#4caf50;font-weight:bold;">✓</span>'
+    : '<span style="color:#ccc;">—</span>';
+}
+
+function tipoLabel(tipo) {
+  return tipo === 'pre-pagamento'
+    ? '<span style="color:#4a7ebf;font-size:0.75rem;font-weight:bold;">PRÉ-PAG.</span>'
+    : '<span style="color:#d4a96a;font-size:0.75rem;font-weight:bold;">PRESENTE</span>';
+}
+
 async function showLog() {
   showScreen('screenLog');
   const vouchers = await getAllVouchers();
   const tbody = document.getElementById('logBody');
 
   if (vouchers.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="log-empty">Nenhum voucher gerado ainda.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="log-empty">Nenhum voucher gerado ainda.</td></tr>';
     return;
   }
 
   tbody.innerHTML = vouchers.map(v => `
     <tr>
       <td><strong>#${v.codigo}</strong></td>
-      <td>${v.para}</td>
-      <td>${v.de}</td>
+      <td>${tipoLabel(v.tipo)}</td>
+      <td>${v.para}${v.de ? `<br><small style="color:#aaa;">de: ${v.de}</small>` : ''}</td>
       <td>${v.descricao.replace(/\n/g, '<br>')}</td>
       <td>${formatDate(v.data)}</td>
+      <td>${flagCell(v.emailEnviado)}</td>
+      <td>${flagCell(v.zohoRegistrado)}</td>
       <td>
         ${v.pdfBytes
           ? `<button class="btn-download-log" data-codigo="${v.codigo}">⬇ PDF</button>`

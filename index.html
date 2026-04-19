@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vale-Presente — Olímpia Spa</title>
+  <title>Voucher — Olímpia Spa</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -12,7 +12,7 @@
   <header class="app-header">
     <div class="header-content">
       <div>
-        <h1>Vale-Presente</h1>
+        <h1>Voucher</h1>
         <p>Olímpia Spa</p>
       </div>
       <button id="btnLog" class="btn-log">Histórico</button>
@@ -41,32 +41,105 @@
 
     <!-- SCREEN 1: DADOS -->
     <section class="screen" id="screen1">
-      <h2 class="screen-title">Dados do Voucher</h2>
       <form id="voucherForm">
-        <div class="field">
-          <label for="para">Para (Presenteado)</label>
-          <input type="text" id="para" placeholder="Nome de quem vai receber" required />
+
+        <!-- Tipo -->
+        <div class="tipo-toggle tipo-toggle-topo">
+          <button type="button" class="tipo-btn active" data-tipo="vale-presente">🎁 Vale-Presente</button>
+          <button type="button" class="tipo-btn" data-tipo="pre-pagamento">💆 Pré-pagamento</button>
         </div>
-        <div class="field">
-          <label for="de">De (Quem Presenteia)</label>
-          <input type="text" id="de" placeholder="Nome de quem está presenteando" required />
-        </div>
-        <div class="field">
-          <label for="descricao">Descrição do Pacote</label>
-          <textarea id="descricao" rows="3" placeholder="Ex: Spa Anti Estresse (3 horas)&#10;Massagem relaxante + hidratação" required></textarea>
-        </div>
-        <div class="field">
-          <label for="mensagem">Mensagem</label>
-          <textarea id="mensagem" rows="3" placeholder="Ex: Feliz aniversário!" required></textarea>
-        </div>
-        <div class="field">
-          <label>Código do Voucher</label>
-          <div class="codigo-row">
-            <input type="text" id="codigo" placeholder="9XXXX" maxlength="10" />
-            <button type="button" id="btnGerarCodigo" class="btn-secundario">Gerar Automático</button>
+        <input type="hidden" id="tipo" value="vale-presente" />
+
+        <!-- Seção 1: Dados do Voucher -->
+        <div class="form-section">
+          <div class="form-section-title">Dados do Voucher</div>
+
+          <div class="field">
+            <label for="para" id="labelPara">Para (Presenteado)</label>
+            <input type="text" id="para" placeholder="Nome de quem vai receber" required />
           </div>
-          <small>Deixe em branco para gerar automaticamente no formato <strong>9XXXX</strong></small>
+          <div class="field" id="fieldDe">
+            <label for="de">De (Quem Presenteia)</label>
+            <input type="text" id="de" placeholder="Nome de quem está presenteando" />
+          </div>
+          <div class="field">
+            <label for="descricao">Descrição do Pacote</label>
+            <textarea id="descricao" rows="3" placeholder="Ex: Spa Anti Estresse (3 horas)&#10;Massagem relaxante + hidratação" required></textarea>
+          </div>
+          <div class="field" id="fieldMensagem">
+            <label for="mensagem">Mensagem</label>
+            <textarea id="mensagem" rows="2" placeholder="Ex: Feliz aniversário!"></textarea>
+          </div>
+          <div class="field">
+            <label>Código</label>
+            <div class="codigo-row">
+              <input type="text" id="codigo" placeholder="9XXXX" maxlength="10" />
+              <button type="button" id="btnGerarCodigo" class="btn-secundario">Gerar</button>
+            </div>
+          </div>
         </div>
+
+        <!-- Seção 2: Dados Internos -->
+        <div class="form-section form-section-interna">
+          <div class="form-section-title">Dados Internos</div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="canal">Canal</label>
+              <select id="canal" required>
+                <option value="" disabled selected>Selecione</option>
+                <option value="Internet">Internet</option>
+                <option value="Whatsapp">Whatsapp</option>
+                <option value="Telefone">Telefone</option>
+                <option value="Pessoalmente">Pessoalmente</option>
+                <option value="CORTESIA - Eduardo">Cortesia Eduardo</option>
+                <option value="CORTESIA - Mileny">Cortesia Mileny</option>
+                <option value="CORTESIA - Mari">Cortesia Mari</option>
+                <option value="EMPRESAS - Corporativo">Corporativo</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="valor">Valor R$</label>
+              <input type="number" id="valor" placeholder="0,00" step="0.01" min="0" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Telefone do Cliente</label>
+            <div class="telefone-row">
+              <input type="text" id="telPais"   placeholder="+55" maxlength="4"  />
+              <input type="text" id="telCidade" placeholder="11"  maxlength="3"  />
+              <input type="text" id="telNumero" placeholder="99999-9999" maxlength="10" />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="enviadoPor">Enviado por</label>
+              <select id="enviadoPor" required>
+                <option value="" disabled selected>Selecione</option>
+                <option value="E-mail">E-mail</option>
+                <option value="Whatsapp">Whatsapp</option>
+                <option value="Retirado no Spa">Retirado no Spa</option>
+                <option value="Correio/Sedex">Correio/Sedex</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="cadastradoPor">Cadastrado por</label>
+              <select id="cadastradoPor" required>
+                <option value="" disabled selected>Selecione</option>
+                <option value="ADM-Marianne">ADM-Marianne</option>
+                <option value="ADM-Rui">ADM-Rui</option>
+                <option value="VO - Felipe">VO - Felipe</option>
+                <option value="VO - Nicolly">VO - Nicolly</option>
+                <option value="JD - Luiza">JD - Luiza</option>
+                <option value="JD - Rafaella">JD - Rafaella</option>
+                <option value="OUTROS">OUTROS</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div class="nav-buttons">
           <span></span>
           <button type="submit" class="btn-primario">Próximo →</button>
@@ -80,7 +153,9 @@
 
       <div id="voucher" class="voucher">
         <img src="public/images/header.png" alt="Olímpia Spa" class="voucher-header-img" />
-        <div class="voucher-body">
+
+        <!-- Template: Vale-Presente -->
+        <div id="templatePresente" class="voucher-body">
           <h2 class="voucher-parabens">PARABÉNS!</h2>
           <p class="voucher-subtitulo">Você acaba de ganhar um tratamento no Olímpia Spa</p>
           <div class="voucher-campos">
@@ -107,6 +182,32 @@
             <p class="voucher-codigo-obs">(Guarde esse número para agendamento dos tratamentos)</p>
           </div>
         </div>
+
+        <!-- Template: Pré-pagamento -->
+        <div id="templatePrePag" class="voucher-body hidden">
+          <h2 class="voucher-prepag-titulo">VOUCHER DE PRÉ-PAGAMENTO</h2>
+          <p class="voucher-subtitulo">Tratamento reservado no Olímpia Spa</p>
+          <div class="voucher-campos">
+            <div class="voucher-linha voucher-inline">
+              <span class="voucher-label">CLIENTE:</span>
+              <span class="voucher-valor" id="ppCliente"></span>
+            </div>
+            <div class="voucher-linha">
+              <span class="voucher-label">SERVIÇO:</span><br />
+              <span class="voucher-valor" id="ppServico"></span>
+            </div>
+          </div>
+          <div class="voucher-valor-bloco">
+            <p class="voucher-valor-label">VALOR PAGO</p>
+            <p class="voucher-valor-num" id="ppValor"></p>
+          </div>
+          <div class="voucher-codigo-bloco">
+            <p class="voucher-codigo-label">Código:</p>
+            <p class="voucher-codigo" id="ppCodigo"></p>
+            <p class="voucher-codigo-obs">(Guarde esse número para agendamento dos tratamentos)</p>
+          </div>
+        </div>
+
         <div class="voucher-footer-img"></div>
         <div class="voucher-rodape">
           <p>* Válido por 90 dias após o recebimento do vale</p>
@@ -126,39 +227,68 @@
 
     <!-- SCREEN 3: DOWNLOAD / EMAIL -->
     <section class="screen hidden" id="screen3">
-      <div class="download-screen">
-        <div class="download-icon">✓</div>
-        <h2 class="screen-title">Voucher Pronto!</h2>
+      <h2 class="screen-title">Voucher Pronto!</h2>
 
-        <div class="voucher-summary">
-          <div class="summary-linha"><span>Para:</span> <strong id="summaryPara"></strong></div>
-          <div class="summary-linha"><span>Código:</span> <strong id="summaryCodigo"></strong></div>
+      <div class="status-bar">
+        <div class="status-item" id="stZoho">
+          <span class="status-dot"></span>Zoho
+        </div>
+        <div class="status-item" id="stVoucher">
+          <span class="status-dot"></span>Voucher
+        </div>
+        <div class="status-item" id="stDownload">
+          <span class="status-dot"></span>Download
+        </div>
+        <div class="status-item" id="stEmail">
+          <span class="status-dot"></span>Email
+        </div>
+      </div>
+
+      <div class="s3-grid">
+
+        <!-- Resumo do Voucher -->
+        <div class="s3-card">
+          <div class="s3-card-title">🎟 Voucher</div>
+          <div class="s3-row"><span>Para</span><strong id="summaryPara"></strong></div>
+          <div class="s3-row"><span>Código</span><strong id="summaryCodigo"></strong></div>
+          <div class="s3-row" id="summaryRowDe" style="display:none"><span>De</span><strong id="summaryDe"></strong></div>
         </div>
 
-        <!-- Ações principais -->
-        <div class="acoes-principais">
-          <button id="btnDownloadPDF" class="btn-primario btn-acao">⬇ Baixar PDF</button>
+        <!-- Resumo Zoho -->
+        <div class="s3-card">
+          <div class="s3-card-title">📋 Dados Internos</div>
+          <div class="s3-row"><span>Canal</span><strong id="summaryCanal"></strong></div>
+          <div class="s3-row"><span>Valor</span><strong id="summaryValor"></strong></div>
+          <div class="s3-row"><span>Enviado</span><strong id="summaryEnviado"></strong></div>
+          <div class="s3-row"><span>Cadastrado por</span><strong id="summaryCadastrado"></strong></div>
+          <div class="s3-zoho-status" id="summaryZohoStatus"></div>
         </div>
 
-        <!-- Envio de email -->
-        <div class="email-section">
-          <h3 class="email-section-title">Enviar por Email</h3>
+      </div>
+
+      <!-- Download -->
+      <button id="btnDownloadPDF" class="btn-primario btn-acao btn-grande">⬇ Baixar PDF</button>
+
+      <!-- Email (ambos os tipos) -->
+      <div class="email-section" id="emailSection">
+        <h3 class="email-section-title">Enviar por Email (opcional)</h3>
+        <div class="grid-2">
           <div class="field">
-            <label for="emailTo">Para (email do presenteado)</label>
+            <label for="emailTo">Para</label>
             <input type="email" id="emailTo" placeholder="destinatario@email.com" />
           </div>
           <div class="field">
-            <label for="emailCc">Cópia — CC (opcional)</label>
+            <label for="emailCc">CC (opcional)</label>
             <input type="email" id="emailCc" placeholder="copia@email.com" />
           </div>
-          <button id="btnSendEmail" class="btn-primario btn-acao btn-email">✉ Enviar Email</button>
-          <div id="emailStatus" class="email-status"></div>
         </div>
+        <button id="btnSendEmail" class="btn-primario btn-acao btn-email">✉ Enviar Email</button>
+        <div id="emailStatus" class="email-status"></div>
+      </div>
 
-        <div class="nav-buttons nav-buttons-step3">
-          <button id="btnBack3" class="btn-secundario">← Voltar ao Preview</button>
-          <button id="btnNovo" class="btn-secundario">+ Novo Voucher</button>
-        </div>
+      <div class="nav-buttons nav-buttons-step3">
+        <button id="btnBack3" class="btn-secundario">← Voltar ao Preview</button>
+        <button id="btnNovo" class="btn-secundario">+ Novo Voucher</button>
       </div>
     </section>
 
@@ -173,10 +303,12 @@
           <thead>
             <tr>
               <th>Código</th>
-              <th>Para</th>
-              <th>De</th>
+              <th>Tipo</th>
+              <th>Nome</th>
               <th>Pacote</th>
               <th>Data</th>
+              <th>Email</th>
+              <th>Zoho</th>
               <th>PDF</th>
             </tr>
           </thead>

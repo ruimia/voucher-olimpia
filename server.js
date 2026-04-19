@@ -4,7 +4,6 @@ const http = require('http');
 const fs   = require('fs');
 const path = require('path');
 
-const sendEmail = require('./api/send-email');
 const PORT = 3002;
 
 const MIME = {
@@ -20,11 +19,22 @@ const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // ── API: POST /api/send-email ──────────────────────────────
-  if (req.url === '/api/send-email') {
+  // ── API routes ─────────────────────────────────────────────
+  if (req.url.startsWith('/api/')) {
     if (req.method === 'OPTIONS') {
       res.writeHead(204); res.end(); return;
     }
+
+    const routeName = req.url.split('?')[0].replace('/api/', '');
+    let handler;
+    try {
+      handler = require(`./api/${routeName}`);
+    } catch {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'API route not found' }));
+      return;
+    }
+
     let body = '';
     req.on('data', c => body += c);
     req.on('end', async () => {
@@ -34,7 +44,7 @@ const server = http.createServer((req, res) => {
         status(code) { res.statusCode = code; return this; },
         json(data)   { res.end(JSON.stringify(data)); },
       };
-      await sendEmail(req, mock);
+      await handler(req, mock);
     });
     return;
   }
@@ -43,7 +53,6 @@ const server = http.createServer((req, res) => {
   let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
   fs.readFile(filePath, (err, data) => {
     if (err) {
-      // fallback para index.html (SPA)
       fs.readFile(path.join(__dirname, 'index.html'), (e, d) => {
         if (e) { res.writeHead(404); res.end('Not found'); return; }
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
