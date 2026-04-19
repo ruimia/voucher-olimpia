@@ -124,16 +124,37 @@
       </div>
     </section>
 
-    <!-- SCREEN 3: DOWNLOAD -->
+    <!-- SCREEN 3: DOWNLOAD / EMAIL -->
     <section class="screen hidden" id="screen3">
       <div class="download-screen">
         <div class="download-icon">✓</div>
         <h2 class="screen-title">Voucher Pronto!</h2>
+
         <div class="voucher-summary">
           <div class="summary-linha"><span>Para:</span> <strong id="summaryPara"></strong></div>
           <div class="summary-linha"><span>Código:</span> <strong id="summaryCodigo"></strong></div>
         </div>
-        <button id="btnDownloadPDF" class="btn-primario btn-grande">⬇ Baixar PDF</button>
+
+        <!-- Ações principais -->
+        <div class="acoes-principais">
+          <button id="btnDownloadPDF" class="btn-primario btn-acao">⬇ Baixar PDF</button>
+        </div>
+
+        <!-- Envio de email -->
+        <div class="email-section">
+          <h3 class="email-section-title">Enviar por Email</h3>
+          <div class="field">
+            <label for="emailTo">Para (email do presenteado)</label>
+            <input type="email" id="emailTo" placeholder="destinatario@email.com" />
+          </div>
+          <div class="field">
+            <label for="emailCc">Cópia — CC (opcional)</label>
+            <input type="email" id="emailCc" placeholder="copia@email.com" />
+          </div>
+          <button id="btnSendEmail" class="btn-primario btn-acao btn-email">✉ Enviar Email</button>
+          <div id="emailStatus" class="email-status"></div>
+        </div>
+
         <div class="nav-buttons nav-buttons-step3">
           <button id="btnBack3" class="btn-secundario">← Voltar ao Preview</button>
           <button id="btnNovo" class="btn-secundario">+ Novo Voucher</button>

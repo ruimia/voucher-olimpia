@@ -179,6 +179,43 @@ body {
   margin: 16px 0;
 }
 
+/* ── STEP 3: AÇÕES ── */
+.acoes-principais { margin: 8px 0; }
+.btn-acao {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+.btn-email { background: #4a7ebf; }
+.btn-email:hover { background: #3a6aaa; }
+
+.email-section {
+  background: #fff;
+  border: 1px solid #e0d8ce;
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin: 16px 0;
+  text-align: left;
+}
+.email-section-title {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+  margin-bottom: 14px;
+  font-family: sans-serif;
+}
+.email-status {
+  font-size: 0.9rem;
+  padding: 8px 0;
+  min-height: 24px;
+  text-align: center;
+  font-family: sans-serif;
+}
+.email-status.success { color: #4caf50; }
+.email-status.error   { color: #e53935; }
+
 /* ── NAV BUTTONS ── */
 .nav-buttons {
   display: flex;

@@ -189,6 +189,81 @@ document.getElementById('btnDownloadPDF').addEventListener('click', async () => 
   }
 });
 
+// ── Envio de Email ────────────────────────────────────────────
+function ab2base64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let bin = '';
+  const chunk = 8192;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(bin);
+}
+
+document.getElementById('btnSendEmail').addEventListener('click', async () => {
+  const to  = document.getElementById('emailTo').value.trim();
+  const cc  = document.getElementById('emailCc').value.trim();
+  const status = document.getElementById('emailStatus');
+
+  if (!to) {
+    status.textContent = 'Informe o email do destinatário.';
+    status.className = 'email-status error';
+    return;
+  }
+
+  const btn = document.getElementById('btnSendEmail');
+  btn.textContent = 'Enviando...';
+  btn.disabled = true;
+  status.textContent = '';
+  status.className = 'email-status';
+
+  try {
+    const pdfBase64 = generatedPdfBytes ? ab2base64(generatedPdfBytes) : null;
+
+    const res = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to, cc,
+        para:      voucherData.para,
+        de:        voucherData.de,
+        descricao: voucherData.descricao,
+        mensagem:  voucherData.mensagem,
+        codigo:    voucherData.codigo,
+        pdfBase64,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      status.textContent = '✓ Email enviado com sucesso!';
+      status.className = 'email-status success';
+      btn.textContent = '✉ Enviar Email';
+
+      // salva no log se ainda não foi salvo
+      await saveVoucher({
+        codigo:    voucherData.codigo,
+        para:      voucherData.para,
+        de:        voucherData.de,
+        descricao: voucherData.descricao,
+        mensagem:  voucherData.mensagem,
+        data:      new Date().toISOString(),
+        pdfBytes:  generatedPdfBytes,
+      });
+    } else {
+      throw new Error(data.error || 'Erro desconhecido');
+    }
+  } catch (err) {
+    status.textContent = '✗ Erro: ' + err.message;
+    status.className = 'email-status error';
+    btn.textContent = '✉ Enviar Email';
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 function triggerDownload(pdfBytes, para, codigo) {
   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
   const url  = URL.createObjectURL(blob);

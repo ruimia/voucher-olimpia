@@ -3,11 +3,10 @@
   "version": "1.0.0",
   "description": "Gerador de Vale-Presentes - Olímpia Spa",
   "scripts": {
-    "dev": "npx serve . -p 3000",
-    "build": "echo 'Static site, no build needed'"
+    "dev": "node server.js"
   },
   "dependencies": {
-    "html2canvas": "^1.4.1",
-    "jspdf": "^2.5.1"
+    "dotenv": "^16.4.5",
+    "resend": "^3.2.0"
   }
 }
