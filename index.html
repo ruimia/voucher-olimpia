@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerador de Vale-Presente — Olímpia Spa</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="app">
+    <header class="app-header">
+      <h1>Gerador de Vale-Presente</h1>
+      <p>Olímpia Spa</p>
+    </header>
+
+    <main class="app-body">
+      <!-- FORMULÁRIO -->
+      <section class="form-section">
+        <h2>Dados do Voucher</h2>
+        <form id="voucherForm">
+
+          <div class="field">
+            <label for="para">Para (Presenteado)</label>
+            <input type="text" id="para" placeholder="Nome de quem vai receber" required />
+          </div>
+
+          <div class="field">
+            <label for="de">De (Quem Presenteia)</label>
+            <input type="text" id="de" placeholder="Nome de quem está presenteando" required />
+          </div>
+
+          <div class="field">
+            <label for="descricao">Descrição do Pacote</label>
+            <input type="text" id="descricao" placeholder="Ex: Spa Anti Estresse (3 horas)" required />
+          </div>
+
+          <div class="field">
+            <label for="mensagem">Mensagem</label>
+            <textarea id="mensagem" rows="3" placeholder="Ex: Feliz aniversário!" required></textarea>
+          </div>
+
+          <div class="field">
+            <label>Código do Voucher</label>
+            <div class="codigo-row">
+              <input type="text" id="codigo" placeholder="9XXXX" maxlength="10" />
+              <button type="button" id="btnGerarCodigo" class="btn-secundario">Gerar Automático</button>
+            </div>
+            <small>Deixe em branco para gerar automaticamente no formato <strong>9XXXX</strong></small>
+          </div>
+
+          <button type="submit" class="btn-primario">Gerar Preview</button>
+        </form>
+      </section>
+
+      <!-- PREVIEW -->
+      <section class="preview-section" id="previewSection" style="display:none;">
+        <h2>Preview do Voucher</h2>
+
+        <div id="voucher" class="voucher">
+          <img src="public/images/header.png" alt="Olímpia Spa" class="voucher-header-img" />
+
+          <div class="voucher-body">
+            <h2 class="voucher-parabens">PARABÉNS!</h2>
+            <p class="voucher-subtitulo">Você acaba de ganhar um tratamento no Olímpia Spa</p>
+
+            <div class="voucher-campos">
+              <div class="voucher-linha voucher-inline">
+                <span class="voucher-label">PARA:</span>
+                <span class="voucher-valor" id="vPara"></span>
+              </div>
+              <div class="voucher-linha voucher-inline">
+                <span class="voucher-label">DE:</span>
+                <span class="voucher-valor" id="vDe"></span>
+              </div>
+              <div class="voucher-linha voucher-mensagem-bloco">
+                <span class="voucher-label">Mensagem:</span><br />
+                <span class="voucher-valor voucher-italic" id="vMensagem"></span>
+              </div>
+              <div class="voucher-linha">
+                <span class="voucher-label">Descrição do pacote:</span><br />
+                <span class="voucher-valor" id="vDescricao"></span>
+              </div>
+            </div>
+
+            <div class="voucher-codigo-bloco">
+              <p class="voucher-codigo-label">Código Vale-Presente:</p>
+              <p class="voucher-codigo" id="vCodigo"></p>
+              <p class="voucher-codigo-obs">(Guarde esse número para agendamento dos tratamentos)</p>
+            </div>
+
+          </div>
+
+          <div class="voucher-footer-img"></div>
+
+          <div class="voucher-rodape">
+            <p>* Válido por 90 dias após o recebimento do vale</p>
+            <p>** Esse vale-presente é pessoal e intransferível</p>
+            <p class="voucher-rodape-fone">Agende: (11) 2122-4027 ou WhatsApp (11) 98704-9281</p>
+            <p>Rua Coronel Joaquim Ferreira Lobo, 202 - Vila Olímpia</p>
+            <p>Alameda Santos, 484 (cobertura) - Jardins</p>
+            <p><strong>www.OlimpiaSpa.com</strong></p>
+          </div>
+        </div>
+
+        <div class="preview-acoes">
+          <button id="btnDownloadPDF" class="btn-primario">⬇ Baixar PDF</button>
+          <button id="btnEditar" class="btn-secundario">Editar</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
