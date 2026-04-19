@@ -2,7 +2,7 @@ const { Resend } = require('resend');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM = process.env.RESEND_FROM_EMAIL || 'Olímpia Spa <onboarding@resend.dev>';
+const FROM = process.env.RESEND_FROM_EMAIL || 'Olímpia Spa <voucher@olimpiaspa.com>';
 
 const HEADER_IMG = 'https://cdn.shopify.com/s/files/1/0701/4000/2477/files/unnamed_7.png?v=1746470866';
 const FOOTER_IMG  = 'https://cdn.shopify.com/s/files/1/0701/4000/2477/files/unnamed_8.png?v=1746470866';
