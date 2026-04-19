@@ -697,3 +697,16 @@ body {
   font-family: Georgia, serif;
 }
 .btn-danger:hover { background: #ffebee; }
+
+.btn-pdf-log {
+  background: #2c2c2c;
+  color: #d4a96a;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-pdf-log:hover { background: #444; }
+.btn-pdf-log:disabled { opacity: 0.6; cursor: default; }

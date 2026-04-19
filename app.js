@@ -478,16 +478,69 @@ async function showLog() {
       <td>${formatDate(v.created_at)}</td>
       <td>${flagCell(v.email_enviado)}</td>
       <td>${flagCell(v.zoho_registrado)}</td>
+      <td><button class="btn-pdf-log" data-codigo="${v.codigo}">⬇ PDF</button></td>
     </tr>
   `).join('');
 
   document.querySelectorAll('.log-row').forEach(row => {
-    row.addEventListener('click', () => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.btn-pdf-log')) return;
       const codigo = row.dataset.codigo;
       const record = vouchers.find(v => v.codigo === codigo);
       if (record) openModal(record);
     });
   });
+
+  document.querySelectorAll('.btn-pdf-log').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const codigo = btn.dataset.codigo;
+      const record = vouchers.find(v => v.codigo === codigo);
+      if (record) await gerarPDFFromRecord(record, btn);
+    });
+  });
+}
+
+// ── PDF a partir do histórico ─────────────────────────────────
+async function gerarPDFFromRecord(record, btnEl) {
+  const orig = { ...voucherData };
+  if (btnEl) { btnEl.textContent = 'Gerando...'; btnEl.disabled = true; }
+
+  voucherData = {
+    tipo:          record.tipo,
+    para:          record.para,
+    de:            record.de || '',
+    descricao:     record.descricao || '',
+    mensagem:      record.mensagem || '',
+    canal:         record.canal,
+    valor:         record.valor,
+    telefone:      record.telefone,
+    enviadoPor:    record.enviado_por,
+    cadastradoPor: record.cadastrado_por,
+    codigo:        record.codigo,
+  };
+
+  // renderiza o voucher em screen2 rapidamente (fora do viewport)
+  const screen2 = document.getElementById('screen2');
+  const wasHidden = screen2.classList.contains('hidden');
+  screen2.style.position = 'fixed';
+  screen2.style.top = '-9999px';
+  screen2.classList.remove('hidden');
+  renderVoucher();
+
+  try {
+    const pdf = await gerarPDF();
+    triggerDownload(pdf.output('arraybuffer'), record.para, record.codigo);
+    await dbPatch(record.codigo, { pdf_baixado: true });
+  } catch (err) {
+    alert('Erro ao gerar PDF: ' + err.message);
+  } finally {
+    if (wasHidden) screen2.classList.add('hidden');
+    screen2.style.position = '';
+    screen2.style.top = '';
+    voucherData = orig;
+    if (btnEl) { btnEl.textContent = '⬇ PDF'; btnEl.disabled = false; }
+  }
 }
 
 // ── Modal CRUD ────────────────────────────────────────────────
@@ -528,6 +581,7 @@ function renderModalView(r) {
       <span class="modal-flag ${r.pdf_baixado ? 'flag-on' : 'flag-off'}">⬇ PDF ${r.pdf_baixado ? 'baixado' : 'não baixado'}</span>
     </div>
   `;
+  document.getElementById('modalPDF').classList.remove('hidden');
   document.getElementById('modalEdit').classList.remove('hidden');
   document.getElementById('modalSave').classList.add('hidden');
   document.getElementById('modalCancel').classList.add('hidden');
@@ -605,6 +659,7 @@ function renderModalEdit(r) {
   selOpt('mEnviadoPor', r.enviado_por);
   selOpt('mCadastradoPor', r.cadastrado_por);
 
+  document.getElementById('modalPDF').classList.add('hidden');
   document.getElementById('modalEdit').classList.add('hidden');
   document.getElementById('modalSave').classList.remove('hidden');
   document.getElementById('modalCancel').classList.remove('hidden');
@@ -626,6 +681,11 @@ document.getElementById('modalEdit').addEventListener('click', () => {
 
 document.getElementById('modalCancel').addEventListener('click', () => {
   renderModalView(currentModalRecord);
+});
+
+document.getElementById('modalPDF').addEventListener('click', async () => {
+  const btn = document.getElementById('modalPDF');
+  await gerarPDFFromRecord(currentModalRecord, btn);
 });
 
 document.getElementById('modalDelete').addEventListener('click', async () => {
