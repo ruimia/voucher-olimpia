@@ -12,8 +12,7 @@ function emailTemplatePrePag({ para, descricao, codigo, valor }) {
 <div style="max-width:600px;margin:0 auto;background:#fff;">
   <img src="${HEADER_IMG}" alt="Olímpia Spa" style="width:100%;display:block;" />
   <div style="padding:24px 32px;text-align:center;">
-    <h1 style="font-size:1.6rem;letter-spacing:2px;color:#2c2c2c;margin:0 0 6px;text-transform:uppercase;">Voucher de Pré-pagamento</h1>
-    <p style="font-size:1rem;color:#666;font-style:italic;margin:0 0 20px;">Seu tratamento no Olímpia Spa está reservado</p>
+    <h1 style="font-size:1.6rem;letter-spacing:2px;color:#2c2c2c;margin:0 0 20px;text-transform:uppercase;">Voucher DaySpa</h1>
     <div style="text-align:left;background:#faf7f3;border-radius:6px;padding:16px 20px;margin-bottom:16px;border:1px solid #ede6da;">
       <p style="margin:0 0 8px;font-size:1rem;"><strong>CLIENTE:</strong> ${para}</p>
       <p style="margin:0;font-size:1rem;"><strong>SERVIÇO:</strong><br>${(descricao || '').replace(/\n/g, '<br>')}</p>

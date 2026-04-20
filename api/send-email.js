@@ -12,7 +12,7 @@ module.exports = async function handler(req, res) {
 
   const isPrePag = tipo === 'pre-pagamento';
   const subject = isPrePag
-    ? `Voucher de Pré-pagamento — #${codigo}`
+    ? `Voucher DaySpa — #${codigo}`
     : `Vale-Presente para ${para} — #${codigo}`;
   const html = isPrePag
     ? emailTemplatePrePag({ para, descricao, codigo, valor })
