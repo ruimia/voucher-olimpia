@@ -66,7 +66,7 @@ async function logToZoho({ para, de, descricao, mensagem, codigo, canal, valor, 
 
   const record = {
     Data_Liga_o:          zohoDate,
-    N_mero_Vale_Presente: codigo,
+    N_mero_Vale_Presente: parseInt(codigo) || codigo,
     Nome:                 de || para || '',
     Nome_Presenteado:     para,
     Se_Outros:            descricao || '',
