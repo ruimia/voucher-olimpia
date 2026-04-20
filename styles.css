@@ -710,3 +710,74 @@ body {
 }
 .btn-pdf-log:hover { background: #444; }
 .btn-pdf-log:disabled { opacity: 0.6; cursor: default; }
+
+/* ── NAV MENU ── */
+.app-nav {
+  display: flex;
+  gap: 4px;
+}
+.nav-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #aaa;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-family: Georgia, serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.nav-btn:hover { color: #d4a96a; border-color: #d4a96a44; }
+.nav-btn.active { color: #d4a96a; border-color: #d4a96a; }
+
+/* ── HOME ── */
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 12px;
+}
+.home-title { font-size: 1.3rem; color: #2c2c2c; }
+.home-sub   { font-size: 0.85rem; color: #999; margin-top: 2px; }
+.home-loading { text-align: center; color: #aaa; font-style: italic; padding: 32px; }
+
+.home-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.home-card {
+  background: #fff;
+  border: 1px solid #ede6da;
+  border-radius: 8px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.home-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-color: #d4a96a; }
+.home-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.home-card-codigo { font-weight: bold; font-size: 1rem; color: #2c2c2c; }
+.home-card-nome   { font-size: 0.95rem; color: #333; margin-bottom: 4px; }
+.home-card-de     { font-size: 0.8rem; color: #aaa; }
+.home-card-desc   { font-size: 0.82rem; color: #888; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.home-card-data { font-size: 0.75rem; color: #aaa; }
+.home-flags     { display: flex; gap: 6px; }
+.home-flag {
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+.home-flag.flag-on  { background: #e8f5e9; color: #2e7d32; }
+.home-flag.flag-off { background: #f5f5f5; color: #ccc; }

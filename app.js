@@ -128,6 +128,7 @@ document.querySelectorAll('.tipo-btn').forEach(btn => {
 });
 
 aplicarTipo('vale-presente');
+showHome();
 
 // ── Navegação ─────────────────────────────────────────────────
 function showScreen(id) {
@@ -135,10 +136,10 @@ function showScreen(id) {
   document.getElementById(id).classList.remove('hidden');
 
   const stepsBar = document.getElementById('stepsBar');
-  if (id === 'screenLog') {
-    stepsBar.style.display = 'none';
-  } else {
-    stepsBar.style.display = 'flex';
+  const noSteps = ['screenLog', 'screenHome'].includes(id);
+  stepsBar.style.display = noSteps ? 'none' : 'flex';
+
+  if (!noSteps) {
     const num = id.replace('screen', '');
     document.querySelectorAll('.step').forEach(s => {
       const n = parseInt(s.dataset.step);
@@ -147,8 +148,66 @@ function showScreen(id) {
       s.classList.toggle('done',   n < cur);
     });
   }
+
+  // Atualiza nav ativa
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.screen === id);
+  });
+
   window.scrollTo(0, 0);
 }
+
+// ── Home ──────────────────────────────────────────────────────
+async function showHome() {
+  showScreen('screenHome');
+  const list = document.getElementById('homeList');
+  list.innerHTML = '<p class="home-loading">Carregando...</p>';
+
+  const vouchers = await dbGetAll();
+  const recent = vouchers.slice(0, 10);
+
+  if (recent.length === 0) {
+    list.innerHTML = '<p class="home-loading">Nenhum voucher ainda.</p>';
+    return;
+  }
+
+  list.innerHTML = recent.map(v => `
+    <div class="home-card log-row" data-codigo="${v.codigo}">
+      <div class="home-card-top">
+        <span class="home-card-codigo">#${v.codigo}</span>
+        ${tipoLabel(v.tipo)}
+      </div>
+      <div class="home-card-nome">${v.para}${v.de ? ` <span class="home-card-de">de ${v.de}</span>` : ''}</div>
+      <div class="home-card-desc">${(v.descricao || '').split('\n')[0]}</div>
+      <div class="home-card-bottom">
+        <span class="home-card-data">${formatDate(v.created_at)}</span>
+        <span class="home-flags">
+          <span class="home-flag ${v.email_enviado ? 'flag-on' : 'flag-off'}">✉</span>
+          <span class="home-flag ${v.zoho_registrado ? 'flag-on' : 'flag-off'}">Z</span>
+        </span>
+      </div>
+    </div>
+  `).join('');
+
+  document.querySelectorAll('#homeList .log-row').forEach(card => {
+    card.addEventListener('click', () => {
+      const record = vouchers.find(v => v.codigo === card.dataset.codigo);
+      if (record) openModal(record);
+    });
+  });
+}
+
+document.getElementById('btnNovoHome').addEventListener('click', () => showScreen('screen1'));
+
+// Nav menu
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.screen;
+    if (target === 'screenHome') showHome();
+    else if (target === 'screenLog') { lastScreenBeforeLog = document.querySelector('.screen:not(.hidden)')?.id || 'screenHome'; showLog(); }
+    else showScreen(target);
+  });
+});
 
 // ── Step 1: Formulário ────────────────────────────────────────
 document.getElementById('btnGerarCodigo').addEventListener('click', () => {
@@ -429,11 +488,6 @@ async function gerarPDF() {
 }
 
 // ── Histórico ─────────────────────────────────────────────────
-document.getElementById('btnLog').addEventListener('click', () => {
-  lastScreenBeforeLog = document.querySelector('.screen:not(.hidden)')?.id || 'screen1';
-  showLog();
-});
-
 document.getElementById('btnCloseLog').addEventListener('click', () => {
   showScreen(lastScreenBeforeLog);
 });

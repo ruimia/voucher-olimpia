@@ -13,11 +13,15 @@
 <div class="app">
   <header class="app-header">
     <div class="header-content">
-      <div>
+      <div class="header-logo">
         <h1>Voucher</h1>
         <p>Olímpia Spa</p>
       </div>
-      <button id="btnLog" class="btn-log">Histórico</button>
+      <nav class="app-nav">
+        <button class="nav-btn active" data-screen="screenHome">Home</button>
+        <button class="nav-btn" data-screen="screen1">Criar Voucher</button>
+        <button class="nav-btn" data-screen="screenLog">Histórico</button>
+      </nav>
     </div>
   </header>
 
@@ -40,6 +44,18 @@
   </div>
 
   <main class="app-body">
+
+    <!-- SCREEN HOME -->
+    <section class="screen hidden" id="screenHome">
+      <div class="home-header">
+        <div>
+          <h2 class="home-title">Bom dia, Olímpia Spa 👋</h2>
+          <p class="home-sub">Últimos vouchers gerados</p>
+        </div>
+        <button class="btn-primario" id="btnNovoHome">+ Criar Voucher</button>
+      </div>
+      <div id="homeList" class="home-list"></div>
+    </section>
 
     <!-- SCREEN 1: DADOS -->
     <section class="screen" id="screen1">
