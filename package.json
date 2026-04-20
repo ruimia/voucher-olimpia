@@ -6,6 +6,7 @@
     "dev": "node server.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.103.3",
     "dotenv": "^16.4.5",
     "resend": "^3.2.0"
   }
