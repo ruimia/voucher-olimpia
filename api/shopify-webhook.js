@@ -66,7 +66,7 @@ module.exports = async function handler(req, res) {
   const attrs      = order.note_attributes || [];
   const isPresente = getAttr(attrs, 'presente').toLowerCase() === 'sim';
 
-  const codigo   = String(order.order_number);
+  const codigo   = (order.name || '').replace('#', '') || String(order.order_number);
   const valor    = order.total_price;
   const descricao = (order.line_items || [])
     .filter(i => i.product_exists)
