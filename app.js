@@ -670,8 +670,7 @@ function renderModalEdit(r) {
           <option value="Whatsapp">Whatsapp</option>
           <option value="Telefone">Telefone</option>
           <option value="Pessoalmente">Pessoalmente</option>
-          <option value="CORTESIA - Eduardo">Cortesia Eduardo</option>
-          <option value="CORTESIA - Mileny">Cortesia Mileny</option>
+            <option value="CORTESIA - Mileny">Cortesia Mileny</option>
           <option value="CORTESIA - Mari">Cortesia Mari</option>
           <option value="EMPRESAS - Corporativo">Corporativo</option>
         </select>
