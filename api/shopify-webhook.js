@@ -1,73 +1,58 @@
 const { createClient } = require('@supabase/supabase-js');
-const https = require('https');
+const { Resend } = require('resend');
+const { logToZoho } = require('./_zoho');
+const { emailTemplate, emailTemplatePrePag } = require('./_email-templates');
 
 const supa = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
 
-// ── helpers ───────────────────────────────────────────────────
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM = process.env.RESEND_FROM_EMAIL || 'Olímpia Spa <voucher@olimpiaspa.com>';
+
 function getAttr(note_attributes, key) {
   const found = (note_attributes || []).find(a => a.name === key);
   return found ? (found.value || '').trim() : '';
 }
 
-function proximoCodigo(orderNumber) {
-  return String(orderNumber);
-}
-
 async function sendEmail({ to, cc, para, de, mensagem, descricao, codigo, tipo, valor }) {
-  const body = JSON.stringify({ to, cc, para, de, mensagem, descricao, codigo, tipo, valor });
-  return new Promise((resolve) => {
-    const url = new URL('https://vale.olimpiaspa.com/api/send-email');
-    const req = https.request({
-      hostname: url.hostname,
-      path: url.pathname,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-    }, (res) => {
-      let data = '';
-      res.on('data', c => data += c);
-      res.on('end', () => resolve(res.statusCode === 200));
+  try {
+    const isPrePag = tipo === 'pre-pagamento';
+    const subject = isPrePag
+      ? `Voucher de Pré-pagamento — #${codigo}`
+      : `Vale-Presente para ${para} — #${codigo}`;
+    const html = isPrePag
+      ? emailTemplatePrePag({ para, descricao, codigo, valor })
+      : emailTemplate({ para, de, mensagem, descricao, codigo });
+
+    const result = await resend.emails.send({
+      from: FROM,
+      to: [to],
+      cc: cc ? [cc] : [],
+      subject,
+      html,
     });
-    req.on('error', () => resolve(false));
-    req.write(body);
-    req.end();
-  });
+    return !!result.data?.id;
+  } catch (err) {
+    console.error('Email error:', err);
+    return false;
+  }
 }
 
-async function logZoho({ para, de, descricao, mensagem, codigo, canal, valor, telefone }) {
-  const body = JSON.stringify({ para, de, descricao, mensagem, codigo, canal, valor, telefone, enviadoPor: 'E-mail', cadastradoPor: 'Shopify', data: new Date().toISOString() });
-  return new Promise((resolve) => {
-    const url = new URL('https://vale.olimpiaspa.com/api/zoho-log');
-    const req = https.request({
-      hostname: url.hostname,
-      path: url.pathname,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-    }, (res) => {
-      let data = '';
-      res.on('data', c => data += c);
-      res.on('end', () => resolve(res.statusCode === 200));
-    });
-    req.on('error', () => resolve(false));
-    req.write(body);
-    req.end();
-  });
-}
-
-// ── handler ───────────────────────────────────────────────────
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const order = req.body;
-  if (!order || (!order.id && !order.order_number)) return res.status(400).json({ error: 'Payload inválido' });
+  if (!order || (!order.id && !order.order_number)) {
+    return res.status(400).json({ error: 'Payload inválido' });
+  }
 
   const attrs      = order.note_attributes || [];
   const isPresente = getAttr(attrs, 'presente').toLowerCase() === 'sim';
 
-  const codigo   = (order.name || '').replace('#', '') || String(order.order_number);
-  const valor    = order.total_price;
+  const codigo    = (order.name || '').replace('#', '') || String(order.order_number);
+  const valor     = order.total_price;
   const descricao = (order.line_items || [])
     .filter(i => i.product_exists)
     .map(i => i.title)
@@ -90,6 +75,7 @@ module.exports = async function handler(req, res) {
   }
 
   const telefone = (order.billing_address?.phone || order.customer?.phone || '').replace(/\D/g, '');
+  const buyerEmail = isPresente ? (order.contact_email || null) : null;
 
   // Salva no Supabase
   const { error: dbErr } = await supa.from('vouchers').upsert({
@@ -114,18 +100,16 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: dbErr.message });
   }
 
-  // Dispara email e Zoho em paralelo
+  // Email e Zoho em paralelo — direto, sem HTTP interno
   const [emailOk, zohoOk] = await Promise.all([
-    emailTo ? sendEmail({ to: emailTo, cc: isPresente ? order.contact_email : null, para, de, mensagem, descricao, codigo, tipo, valor }) : false,
-    logZoho({ para, de, descricao, mensagem, codigo, canal: 'Internet', valor, telefone }),
+    emailTo
+      ? sendEmail({ to: emailTo, cc: buyerEmail, para, de, mensagem, descricao, codigo, tipo, valor })
+      : Promise.resolve(false),
+    logToZoho({ para, de, descricao, mensagem, codigo, canal: 'Internet', valor, telefone, enviadoPor: 'E-mail', cadastradoPor: 'Shopify' }),
   ]);
 
-  // Atualiza flags
-  await supa.from('vouchers').update({
-    email_enviado:   emailOk,
-    zoho_registrado: zohoOk,
-  }).eq('codigo', codigo);
+  await supa.from('vouchers').update({ email_enviado: emailOk, zoho_registrado: zohoOk }).eq('codigo', codigo);
 
-  console.log(`Shopify webhook #${codigo}: email=${emailOk} zoho=${zohoOk}`);
+  console.log(`Shopify #${codigo}: email=${emailOk} zoho=${zohoOk}`);
   return res.status(200).json({ ok: true, codigo, emailOk, zohoOk });
 };
