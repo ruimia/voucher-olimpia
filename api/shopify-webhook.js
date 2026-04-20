@@ -16,8 +16,8 @@ function proximoCodigo(orderNumber) {
   return String(orderNumber);
 }
 
-async function sendEmail({ to, para, de, mensagem, descricao, codigo, tipo, valor }) {
-  const body = JSON.stringify({ to, para, de, mensagem, descricao, codigo, tipo, valor });
+async function sendEmail({ to, cc, para, de, mensagem, descricao, codigo, tipo, valor }) {
+  const body = JSON.stringify({ to, cc, para, de, mensagem, descricao, codigo, tipo, valor });
   return new Promise((resolve) => {
     const url = new URL('https://vale.olimpiaspa.com/api/send-email');
     const req = https.request({
@@ -116,7 +116,7 @@ module.exports = async function handler(req, res) {
 
   // Dispara email e Zoho em paralelo
   const [emailOk, zohoOk] = await Promise.all([
-    emailTo ? sendEmail({ to: emailTo, para, de, mensagem, descricao, codigo, tipo, valor }) : false,
+    emailTo ? sendEmail({ to: emailTo, cc: isPresente ? order.contact_email : null, para, de, mensagem, descricao, codigo, tipo, valor }) : false,
     logZoho({ para, de, descricao, mensagem, codigo, canal: 'Internet', valor, telefone }),
   ]);
 
