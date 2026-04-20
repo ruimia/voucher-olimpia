@@ -61,7 +61,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const order = req.body;
-  if (!order || !order.id) return res.status(400).json({ error: 'Payload inválido' });
+  if (!order || (!order.id && !order.order_number)) return res.status(400).json({ error: 'Payload inválido' });
 
   const attrs      = order.note_attributes || [];
   const isPresente = getAttr(attrs, 'presente').toLowerCase() === 'sim';
