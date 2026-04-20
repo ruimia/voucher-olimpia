@@ -85,7 +85,34 @@ function postToZoho(accessToken, record) {
   });
 }
 
-module.exports = async function handler(req, res) {
+async function logToZoho({ para, de, descricao, mensagem, codigo, canal, valor, data, telefone, enviadoPor, cadastradoPor }) {
+  const accessToken = await getAccessToken();
+
+  const d = new Date(data || Date.now());
+  const zohoDate = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    .replace(/ /g, '-');
+
+  const record = {
+    Data_Liga_o:          zohoDate,
+    N_mero_Vale_Presente: codigo,
+    Nome:                 de || para || '',
+    Nome_Presenteado:     para,
+    Se_Outros:            descricao || '',
+    Comprado:             canal || '',
+    Valor_Vale_Presente:  parseFloat(valor) || 0,
+    Telefone:             (telefone || '').replace(/\D/g, ''),
+    Quem_VENDEU:          cadastradoPor || '',
+    Enviado_por:          enviadoPor || '',
+    O_que_procura:        ['Outros'],
+    Utilizou:             'Nao',
+  };
+
+  const result = await postToZoho(accessToken, record);
+  console.log('Zoho response:', result.status, JSON.stringify(result.body));
+  return result.status === 200 || result.status === 201;
+}
+
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -130,4 +157,7 @@ module.exports = async function handler(req, res) {
     console.error('zoho-log error:', err);
     res.status(500).json({ error: err.message });
   }
-};
+}
+
+module.exports = handler;
+module.exports.logToZoho = logToZoho;

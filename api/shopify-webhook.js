@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { Resend } = require('resend');
-const { logToZoho } = require('./_zoho');
+const { logToZoho } = require('./zoho-log');
 const { emailTemplate, emailTemplatePrePag } = require('./_email-templates');
 
 const supa = createClient(
