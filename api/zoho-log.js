@@ -109,7 +109,7 @@ async function logToZoho({ para, de, descricao, mensagem, codigo, canal, valor, 
 
   const result = await postToZoho(accessToken, record);
   console.log('Zoho response:', result.status, JSON.stringify(result.body));
-  return result.status === 200 || result.status === 201;
+  return result.body?.code === 3000;
 }
 
 async function handler(req, res) {
