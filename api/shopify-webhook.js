@@ -89,7 +89,7 @@ module.exports = async function handler(req, res) {
     valor:           parseFloat(valor) || 0,
     telefone:        telefone || null,
     enviado_por:     'E-mail',
-    cadastrado_por:  'Shopify',
+    cadastrado_por:  'OUTROS',
     email_enviado:   false,
     zoho_registrado: false,
     pdf_baixado:     false,
@@ -105,7 +105,7 @@ module.exports = async function handler(req, res) {
     emailTo
       ? sendEmail({ to: emailTo, cc: buyerEmail, para, de, mensagem, descricao, codigo, tipo, valor })
       : Promise.resolve(false),
-    logToZoho({ para, de, descricao, mensagem, codigo, canal: 'Internet', valor, telefone, enviadoPor: 'E-mail', cadastradoPor: 'Shopify' }),
+    logToZoho({ para, de, descricao, mensagem, codigo, canal: 'Internet', valor, telefone, enviadoPor: 'E-mail', cadastradoPor: 'OUTROS' }),
   ]);
 
   await supa.from('vouchers').update({ email_enviado: emailOk, zoho_registrado: zohoOk }).eq('codigo', codigo);
