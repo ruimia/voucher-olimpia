@@ -16,6 +16,54 @@ function getAttr(note_attributes, key) {
   return found ? (found.value || '').trim() : '';
 }
 
+function buildDescricao(lineItems) {
+  const zepto = lineItems.filter(i => i.title === 'Item Personalization');
+  const regular = lineItems.filter(i => i.product_exists && i.title !== 'Item Personalization');
+
+  const parts = [];
+
+  for (const item of regular) {
+    // Procura item Zepto vinculado a esse produto
+    const zeptoItem = zepto.find(z =>
+      (z.properties || []).some(p =>
+        p.name.startsWith('_Customization For:') && p.name.includes(item.title.split('(')[0].trim())
+      )
+    );
+
+    if (zeptoItem) {
+      const services = (zeptoItem.properties || [])
+        .filter(p => !p.name.startsWith('_') && p.value === 'Yes')
+        .map(p => p.name.replace(/\s*\(R\$[\d,.]+\)\s*$/, '').trim());
+
+      parts.push(services.length > 0
+        ? `${item.title}:\n${services.map(s => `• ${s}`).join('\n')}`
+        : item.title
+      );
+    } else {
+      parts.push(item.title);
+    }
+  }
+
+  // Fallback: Zepto sem produto pai encontrado
+  if (parts.length === 0) {
+    for (const z of zepto) {
+      const customForProp = (z.properties || []).find(p => p.name.startsWith('_Customization For:'));
+      const baseName = customForProp
+        ? customForProp.name.replace(/_Customization For:\s*/, '').split('(Line Item')[0].trim()
+        : 'Spa Personalizado';
+      const services = (z.properties || [])
+        .filter(p => !p.name.startsWith('_') && p.value === 'Yes')
+        .map(p => p.name.replace(/\s*\(R\$[\d,.]+\)\s*$/, '').trim());
+      parts.push(services.length > 0
+        ? `${baseName}:\n${services.map(s => `• ${s}`).join('\n')}`
+        : baseName
+      );
+    }
+  }
+
+  return parts.join('\n\n');
+}
+
 async function sendEmail({ to, cc, para, de, mensagem, descricao, codigo, tipo, valor }) {
   try {
     const isPrePag = tipo === 'pre-pagamento';
@@ -53,10 +101,7 @@ module.exports = async function handler(req, res) {
 
   const codigo    = (order.name || '').replace('#', '') || String(order.order_number);
   const valor     = order.total_price;
-  const descricao = (order.line_items || [])
-    .filter(i => i.product_exists)
-    .map(i => i.title)
-    .join('\n');
+  const descricao = buildDescricao(order.line_items || []);
 
   let para, de, mensagem, emailTo, tipo;
 
