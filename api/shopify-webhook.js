@@ -17,47 +17,27 @@ function getAttr(note_attributes, key) {
 }
 
 function buildDescricao(lineItems) {
-  const zepto = lineItems.filter(i => i.title === 'Item Personalization');
-  const regular = lineItems.filter(i => i.product_exists && i.title !== 'Item Personalization');
-
   const parts = [];
 
-  for (const item of regular) {
-    // Procura item Zepto vinculado a esse produto
-    const zeptoItem = zepto.find(z =>
-      (z.properties || []).some(p =>
-        p.name.startsWith('_Customization For:') && p.name.includes(item.title.split('(')[0].trim())
-      )
-    );
+  for (const item of lineItems) {
+    if (!item.product_exists) continue;
 
-    if (zeptoItem) {
-      const services = (zeptoItem.properties || [])
-        .filter(p => !p.name.startsWith('_') && p.value === 'Yes')
-        .map(p => p.name.replace(/\s*\(R\$[\d,.]+\)\s*$/, '').trim());
+    // Propriedades visíveis (ignora campos internos _pplr_* e _Customization*)
+    const props = (item.properties || [])
+      .filter(p => !p.name.startsWith('_'))
+      .map(p => {
+        const cleanName = p.name.replace(/\s*\(R\$[\d,.]+\)\s*$/, '').trim();
+        const cleanVal  = (p.value || '').replace(/\s*\+R\$[\d,.]+\s*$/, '').trim();
+        // Checkbox marcado (valor "Yes") → mostra só o nome
+        // Dropdown selecionado (ex: "50 min") → mostra "Nome: valor"
+        return cleanVal === 'Yes' || cleanVal === '' ? cleanName : `${cleanName}: ${cleanVal}`;
+      })
+      .filter(Boolean);
 
-      parts.push(services.length > 0
-        ? `${item.title}:\n${services.map(s => `• ${s}`).join('\n')}`
-        : item.title
-      );
+    if (props.length > 0) {
+      parts.push(`${item.title}:\n${props.map(s => `• ${s}`).join('\n')}`);
     } else {
       parts.push(item.title);
-    }
-  }
-
-  // Fallback: Zepto sem produto pai encontrado
-  if (parts.length === 0) {
-    for (const z of zepto) {
-      const customForProp = (z.properties || []).find(p => p.name.startsWith('_Customization For:'));
-      const baseName = customForProp
-        ? customForProp.name.replace(/_Customization For:\s*/, '').split('(Line Item')[0].trim()
-        : 'Spa Personalizado';
-      const services = (z.properties || [])
-        .filter(p => !p.name.startsWith('_') && p.value === 'Yes')
-        .map(p => p.name.replace(/\s*\(R\$[\d,.]+\)\s*$/, '').trim());
-      parts.push(services.length > 0
-        ? `${baseName}:\n${services.map(s => `• ${s}`).join('\n')}`
-        : baseName
-      );
     }
   }
 
