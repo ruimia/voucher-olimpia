@@ -96,10 +96,11 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Payload inválido' });
   }
 
-  const attrs      = order.note_attributes || [];
-  const presenteVal = getAttr(attrs, 'presente').toLowerCase();
-  const isPresente  = presenteVal === 'sim';
-  console.log(`Pedido ${order.name}: presente="${presenteVal}" → tipo=${isPresente ? 'vale-presente' : 'pre-pagamento'}`);
+  const attrs        = order.note_attributes || [];
+  const presenteVal  = getAttr(attrs, 'presente').toLowerCase();
+  const nomePres     = getAttr(attrs, 'nome_presenteado');
+  const isPresente   = presenteVal === 'sim' && !!nomePres;
+  console.log(`Pedido ${order.name}: presente="${presenteVal}" nome_presenteado="${nomePres}" → tipo=${isPresente ? 'vale-presente' : 'pre-pagamento'}`);
 
   const codigo    = (order.name || '').replace('#', '') || String(order.order_number);
   const valor     = order.total_price;
