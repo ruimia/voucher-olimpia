@@ -151,7 +151,7 @@ module.exports = async function handler(req, res) {
   // Email e Zoho em paralelo — direto, sem HTTP interno
   const [emailOk, zohoOk] = await Promise.all([
     emailTo
-      ? sendEmail({ to: emailTo, cc: buyerEmail, para, de, mensagem, descricao, codigo, tipo, valor })
+      ? sendEmail({ to: emailTo, cc: buyerEmail, para, de, mensagem, descricao, codigo, tipo })
       : Promise.resolve(false),
     logToZoho({ para, de, descricao, mensagem, codigo, canal: 'Internet', valor, telefone, enviadoPor: 'E-mail', cadastradoPor: 'OUTROS' }),
   ]);

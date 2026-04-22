@@ -283,6 +283,7 @@ function renderVoucher() {
     document.getElementById('ppServico').textContent  = voucherData.descricao;
     document.getElementById('ppValor').textContent    = formatCurrency(voucherData.valor);
     document.getElementById('ppCodigo').textContent   = '#' + voucherData.codigo;
+    document.getElementById('ppValorBloco').style.display = 'none';
   }
 }
 
