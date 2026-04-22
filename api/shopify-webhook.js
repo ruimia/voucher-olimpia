@@ -97,7 +97,9 @@ module.exports = async function handler(req, res) {
   }
 
   const attrs      = order.note_attributes || [];
-  const isPresente = getAttr(attrs, 'presente').toLowerCase() === 'sim';
+  const presenteVal = getAttr(attrs, 'presente').toLowerCase();
+  const isPresente  = presenteVal === 'sim';
+  console.log(`Pedido ${order.name}: presente="${presenteVal}" → tipo=${isPresente ? 'vale-presente' : 'pre-pagamento'}`);
 
   const codigo    = (order.name || '').replace('#', '') || String(order.order_number);
   const valor     = order.total_price;
@@ -114,7 +116,7 @@ module.exports = async function handler(req, res) {
   } else {
     tipo     = 'pre-pagamento';
     para     = `${order.customer?.first_name || ''} ${order.customer?.last_name || ''}`.trim();
-    de       = '';
+    de       = para; // comprador é o próprio beneficiário
     mensagem = '';
     emailTo  = order.contact_email || '';
   }
