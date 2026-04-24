@@ -164,30 +164,38 @@ async function showHome() {
   list.innerHTML = '<p class="home-loading">Carregando...</p>';
 
   const vouchers = await dbGetAll();
-  const recent = vouchers.slice(0, 10);
+  const recent = vouchers.slice(0, 12);
 
   if (recent.length === 0) {
     list.innerHTML = '<p class="home-loading">Nenhum voucher ainda.</p>';
     return;
   }
 
-  list.innerHTML = recent.map(v => `
-    <div class="home-card log-row" data-codigo="${v.codigo}">
+  list.innerHTML = recent.map(v => {
+    const entregaFisica = v.enviado_por === 'Retirado no Spa' || v.enviado_por === 'Correio/Sedex';
+    const entregaIcon   = v.enviado_por === 'Retirado no Spa' ? '🏠' : '📦';
+    const valorFmt      = v.valor ? 'R$\u00a0' + parseFloat(v.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '';
+    return `
+    <div class="home-card log-row${entregaFisica ? ' home-card-alerta' : ''}" data-codigo="${v.codigo}">
       <div class="home-card-top">
         <span class="home-card-codigo">#${v.codigo}</span>
         ${tipoLabel(v.tipo)}
       </div>
       <div class="home-card-nome">${v.para}${v.de ? ` <span class="home-card-de">de ${v.de}</span>` : ''}</div>
       <div class="home-card-desc">${(v.descricao || '').split('\n')[0]}</div>
+      ${entregaFisica ? `<div class="home-card-entrega">${entregaIcon} ${v.enviado_por}</div>` : ''}
       <div class="home-card-bottom">
         <span class="home-card-data">${formatDate(v.created_at)}</span>
-        <span class="home-flags">
-          <span class="home-flag ${v.email_enviado ? 'flag-on' : 'flag-off'}">✉</span>
-          <span class="home-flag ${v.zoho_registrado ? 'flag-on' : 'flag-off'}">Z</span>
-        </span>
+        <div class="home-card-bottom-right">
+          ${valorFmt ? `<span class="home-card-valor">${valorFmt}</span>` : ''}
+          <span class="home-flags">
+            <span class="home-flag ${v.email_enviado ? 'flag-on' : 'flag-off'}">✉</span>
+            <span class="home-flag ${v.zoho_registrado ? 'flag-on' : 'flag-off'}">Z</span>
+          </span>
+        </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   document.querySelectorAll('#homeList .log-row').forEach(card => {
     card.addEventListener('click', () => {

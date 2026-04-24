@@ -744,7 +744,7 @@ body {
 
 .home-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 .home-card {
@@ -756,6 +756,26 @@ body {
   transition: box-shadow 0.2s, border-color 0.2s;
 }
 .home-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-color: #d4a96a; }
+
+/* Destaque — entrega física */
+.home-card-alerta {
+  border-left: 4px solid #e67e22;
+  background: #fffbf5;
+}
+.home-card-alerta:hover { border-color: #e67e22; }
+.home-card-entrega {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #c0620a;
+  background: #fdebd0;
+  border-radius: 10px;
+  padding: 2px 9px;
+  margin-bottom: 8px;
+}
+
 .home-card-top {
   display: flex;
   justify-content: space-between;
@@ -771,7 +791,9 @@ body {
   justify-content: space-between;
   align-items: center;
 }
-.home-card-data { font-size: 0.75rem; color: #aaa; }
+.home-card-bottom-right { display: flex; align-items: center; gap: 8px; }
+.home-card-valor  { font-size: 0.82rem; font-weight: 600; color: #2c2c2c; }
+.home-card-data   { font-size: 0.75rem; color: #aaa; }
 .home-flags     { display: flex; gap: 6px; }
 .home-flag {
   font-size: 0.75rem;
