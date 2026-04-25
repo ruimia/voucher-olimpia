@@ -11,6 +11,15 @@ const supa = createClient(
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.RESEND_FROM_EMAIL || 'Olímpia Spa <voucher@olimpiaspa.com>';
 
+// Mapeia shipping_lines title → campo "Enviado por" do Zoho/Supabase
+function getEnviadoPor(shippingLines) {
+  const title = ((shippingLines || [])[0]?.title || '').toLowerCase();
+  if (title.includes('sedex') || title.includes('correio')) return 'Correio/Sedex';
+  if (title.includes('retirar') || title.includes('retirada') || title.includes('spa')) return 'Retirado no Spa';
+  if (title.includes('whatsapp'))                                                         return 'Whatsapp';
+  return 'E-mail'; // padrão: Por EMAIL ou qualquer outro
+}
+
 function getAttr(note_attributes, key) {
   const found = (note_attributes || []).find(a => a.name === key);
   return found ? (found.value || '').trim() : '';
@@ -105,8 +114,9 @@ module.exports = async function handler(req, res) {
     emailTo  = order.contact_email || '';
   }
 
-  const telefone = (order.billing_address?.phone || order.customer?.phone || '').replace(/\D/g, '');
+  const telefone   = (order.billing_address?.phone || order.customer?.phone || '').replace(/\D/g, '');
   const buyerEmail = isPresente ? (order.contact_email || null) : null;
+  const enviadoPor = getEnviadoPor(order.shipping_lines);
 
   // Salva no Supabase
   const { error: dbErr } = await supa.from('vouchers').upsert({
@@ -119,7 +129,7 @@ module.exports = async function handler(req, res) {
     canal:           'Internet',
     valor:           parseFloat(valor) || 0,
     telefone:        telefone || null,
-    enviado_por:     'E-mail',
+    enviado_por:     enviadoPor,
     cadastrado_por:  'OUTROS',
     email_enviado:   false,
     zoho_registrado: false,
@@ -136,7 +146,7 @@ module.exports = async function handler(req, res) {
     emailTo
       ? sendEmail({ to: emailTo, cc: buyerEmail, para, de, mensagem, descricao, codigo, tipo })
       : Promise.resolve(false),
-    logToZoho({ para, de, descricao, mensagem, codigo, canal: 'Internet', valor, telefone, enviadoPor: 'E-mail', cadastradoPor: 'OUTROS' }),
+    logToZoho({ para, de, descricao, mensagem, codigo, canal: 'Internet', valor, telefone, enviadoPor, cadastradoPor: 'OUTROS' }),
   ]);
 
   await supa.from('vouchers').update({ email_enviado: emailOk, zoho_registrado: zohoOk }).eq('codigo', codigo);
