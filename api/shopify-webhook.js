@@ -22,13 +22,16 @@ function buildDescricao(lineItems) {
   for (const item of lineItems) {
     if (!item.product_exists) continue;
 
-    // Propriedades visíveis (ignora campos internos _pplr_* e _Customization*)
+    // Propriedades visíveis (ignora apenas campos internos com __ duplo: __pplr_*, etc.)
     const props = (item.properties || [])
-      .filter(p => !p.name.startsWith('_'))
+      .filter(p => !p.name.startsWith('__'))
       .map(p => {
-        const cleanName = p.name.replace(/\s*\(R\$[\d,.]+\)\s*$/, '').trim();
+        const cleanName = p.name
+          .replace(/^_+/, '')                      // remove _ inicial do Zepto
+          .replace(/\s*\(R\$[\d,.]+\)\s*$/, '')   // remove (R$XX) no final
+          .trim();
         const cleanVal  = (p.value || '').replace(/\s*\+R\$[\d,.]+\s*$/, '').trim();
-        // Checkbox marcado (valor "Yes") → mostra só o nome
+        // Checkbox marcado (valor "Yes" ou vazio) → mostra só o nome
         // Dropdown selecionado (ex: "50 min") → mostra "Nome: valor"
         return cleanVal === 'Yes' || cleanVal === '' ? cleanName : `${cleanName}: ${cleanVal}`;
       })
